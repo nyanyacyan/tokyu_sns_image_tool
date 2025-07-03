@@ -29,9 +29,9 @@ flowchart TD
     G --> H[画像一式を資料として保存]
 ```
 
-## 💻 使用技術
+## 使用技術
 
-- **Python 3.10.7
+- **Python** 3.10.7
 - **Selenium**（ブラウザ操作）
 - **BeautifulSoup4**（HTML解析）
 - **Pillow / OpenCV**（画像処理）
