@@ -60,22 +60,38 @@ python main.py
 
 ## ディレクトリ構成（例）
 ```
-tokyu_sns_image_tool/
-├── main.py
-├── login/
-│   └── login_handler.py
-├── scraper/
-│   ├── url_collector.py
-│   └── detail_fetcher.py
-├── generator/
-│   ├── image_generator.py
-│   └── text_generator.py
-├── templates/
-│   └── base_template.png
-├── output/
-│   └── 生成された画像ファイル一式
-├── README.md
-└── requirements.txt
+yahoo_auction_scraper/
+├── README.md                      # プロジェクト概要・ルール・処理フローなど
+├── .gitignore                     # 不要ファイルのGit管理除外設定
+├── requirements.txt               # 必要ライブラリ一覧（開発・教育用）
+├── docs/                          # 開発支援資料（納品時は除外）
+│   ├── setup_guide.md             # 環境構築・実行手順
+│   ├── design.md                  # 設計概要と命名ルール
+│   └── flow_spec.md               # 処理フローの詳細定義
+├── tests/                         # 単体テスト（教育用、納品時は除外）
+│   └── test.py                    # テストファイル
+└── installer/                     # 納品対象一式（以下のみを相手に渡す）
+    ├── run.bat                    # Windows用実行スクリプト
+    ├── requirements.txt           # 必要ライブラリ一覧（納品用）
+    ├── config/
+    │   └── credentials.json       # Google Sheets APIキー（Git除外）
+    ├── data/
+    │   ├── input/                 # 商品画像の保存先
+    │   └── output/                # 出力CSV等（必要に応じて）
+    │       └── logs/              # logファイル（日付順で作成）
+    └── src/
+        ├── main.py                # 実行起点（YahooFlowを呼び出し）
+        └── flow/
+            ├── main_flow.py          # 一連の処理フロー
+            ├── detail_page_flow.py   # 詳細ページの処理フロー
+            └── base/
+                ├── chrome.py              # Chrome（クラス名：Chrome）
+                ├── selenium.py            # Selenium（クラス名：Selenium）
+                ├── spreadsheet_read.py    # スプシ読取（クラス名：SpreadsheetReader）
+                ├── spreadsheet_write.py   # スプシ書込（クラス名：SpreadsheetWriter）
+                ├── number_calculator.py   # 数値計算（クラス名：PriceCalculator）
+                ├── url_builder.py         # URL作成（クラス名：UrlBuilder）
+                └── utils.py               # 汎用関数（クラス名なし or Utils）
 ```
 
 
