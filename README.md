@@ -60,7 +60,7 @@ python main.py
 
 ## ディレクトリ構成（例）
 ```
-yahoo_auction_scraper/
+tokyu_sns_image_tool/
 ├── README.md                      # プロジェクト概要・ルール・処理フローなど
 ├── .gitignore                     # 不要ファイルのGit管理除外設定
 ├── requirements.txt               # 必要ライブラリ一覧（開発・教育用）
