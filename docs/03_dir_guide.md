@@ -1,68 +1,88 @@
-# 03_pr_template.md
-## プルリクエスト作成テンプレート
+# ディレクトリ構成
 
-このテンプレートは、GitHub 上で Pull Request（PR）を作成する際に使用します。レビュアーとの認識齟齬を防ぎ、スムーズなコードレビューとマージを促進することが目的です。
+## 【目的】
 
----
-
-### タイトル（必須）
-'''
-[Add] 新機能の概要
-[Fix] バグ修正内容の要約
-[Update] 機能改善の内容
-[Refactor] リファクタリングの目的 など
-'''
+このドキュメントは、本プロジェクトのディレクトリ構成を共有し、ファイルの配置ルールを統一するためのものです。
 
 ---
 
-### 関連Issue（該当する場合）
-'''
-Closes #issue番号
-'''
-※ 自動でクローズしたい場合は `Closes` / `Fixes` / `Resolves` を使用してください。
+## 【ディレクトリ構成】
+```plaintext
+tokyu_sns_image_tool
+├── docs
+│   ├── 00_setup_guide.md
+│   ├── 01_security_key_guide.md
+│   ├── 02_naming_guide.md
+│   ├── 03_dir_guide.md
+│   ├── 04_coding_guide.md
+│   ├── 05_branch_guide.md
+│   ├── 06_commit_guide.md
+│   ├── 07_pr_guide.md
+│   ├── 08. comment_guide.md
+│   └── 09_selenium.md
+├── installer
+│   ├── bin
+│   │   ├── bat
+│   │   └── requirements.txt
+│   ├── config
+│   │   └── config.json
+│   ├── data
+│   │   ├── input
+│   │   │   ├── fonts
+│   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
+│   │   │   └── template
+│   │   │       ├── A.png
+│   │   │       ├── B.png
+│   │   │       ├── C.png
+│   │   │       ├── D.png
+│   │   │       └── LAST.png
+│   │   └── output
+│   │       └── logs
+│   ├── src
+│   │   ├── flow
+│   │   │   ├── base
+│   │   │   │   ├── chrome.py
+│   │   │   │   ├── image_editor.py
+│   │   │   │   ├── path.py
+│   │   │   │   ├── selenium.py
+│   │   │   │   └── sqlite.py
+│   │   │   ├── const
+│   │   │   │   ├── const_element.py
+│   │   │   │   ├── const_table.py
+│   │   │   │   └── prompt.py
+│   │   │   ├── generate_image_flow.py
+│   │   │   ├── input_db_flow.py
+│   │   │   ├── main_flow.py
+│   │   │   └── scraper_flow.py
+│   │   └── main.py
+│   └── tests
+├── README.md
+└── requirements.txt
 
----
+```
 
-### 概要（What & Why）
-
-- 何を実装・修正したか
-- なぜこの対応が必要だったか（背景）
-
----
-
-### 変更内容
-
-- 追加・修正した関数、クラスの名称（可能な範囲で）
-- 影響を受けるファイルや処理範囲
-
----
-
-### 実装方針・補足
-
-- 特筆すべき仕様や処理分岐
-- 想定されるエッジケース対応など
-
----
-
-### 動作確認（How）
-
-- ローカル検証方法
-- 再現手順（バグ修正の場合）
-- スクリーンショットやログの貼付（任意）
+<br>
 
 
----
 
-### チェックリスト（レビュワー・自身で確認）
+## 【ルール】
+- すべての実装コードは installer/ 以下にまとめます
+- config/ 配下にはセキュリティ情報を格納し、Gitに含めません
+- 各ディレクトリは 責務ごとに明確に分類し、混在しないように注意します
 
-- [ ] PEP8やLintのチェックは通過している
-- [ ] テスト（自動 or 手動）は通過済み
-- [ ] 不要な `print` やコメントが削除されている
-- [ ] main ブランチへの直接 push ではない
-- [ ] セキュリティ情報（APIキー等）は含まれていない
 
----
+<br>
 
-### 備考（任意）
 
-- 補足説明があれば自由に記載
+
+## 【ポイント】
+- 新たにディレクトリを作成する場合は、PMに相談・レビューを通してから作成すること
+- ディレクトリ名はすべて snake_case で統一してください（例：data_loader, user_service）
+
+
+<br>
+
+
+
+## 【補足（任意）】
+- 初期セットアップ後に tree コマンドで構成を確認することをおすすめします：
