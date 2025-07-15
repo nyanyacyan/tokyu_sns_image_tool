@@ -1,6 +1,6 @@
 # tokyu_sns_image_tool
 
-東急受託リース向けに開発された、SNS投稿用画像・文章を自動生成するための準備ツールです。  
+東急受託リース向けに開発された、SNS投稿用画像・文章を自動生成するための準備ツールです。
 特定ページ上の「NEW」データを抽出し、それを元にSNS投稿素材となるテンプレート画像を自動で作成します。
 
 ---
@@ -20,8 +20,8 @@
 
 ```mermaid
 flowchart TD
-    A[ログイン] --> B[特定ページに遷移]
-    B --> C[「NEW」付き行のURL取得（ページ繰り返し）]
+    A[ログイン] --> B[転載可にレ点を入れて検索]
+    B --> C[詳細のURL取得（ページ繰り返し）]
     C --> D[URLごとに個別ページへアクセス]
     D --> E[画像・データの取得]
     E --> F[テンプレートに画像貼り付け・テキスト入力]
@@ -60,38 +60,59 @@ python main.py
 
 ## ディレクトリ構成（例）
 ```
-tokyu_sns_image_tool/
-├── README.md                      # プロジェクト概要・ルール・処理フローなど
-├── .gitignore                     # 不要ファイルのGit管理除外設定
-├── requirements.txt               # 必要ライブラリ一覧（開発・教育用）
-├── docs/                          # 開発支援資料（納品時は除外）
-│   ├── setup_guide.md             # 環境構築・実行手順
-│   ├── design.md                  # 設計概要と命名ルール
-│   └── flow_spec.md               # 処理フローの詳細定義
-├── tests/                         # 単体テスト（教育用、納品時は除外）
-│   └── test.py                    # テストファイル
-└── installer/                     # 納品対象一式（以下のみを相手に渡す）
-    ├── run.bat                    # Windows用実行スクリプト
-    ├── requirements.txt           # 必要ライブラリ一覧（納品用）
-    ├── config/
-    │   └── credentials.json       # Google Sheets APIキー（Git除外）
-    ├── data/
-    │   ├── input/                 # 商品画像の保存先
-    │   └── output/                # 出力CSV等（必要に応じて）
-    │       └── logs/              # logファイル（日付順で作成）
-    └── src/
-        ├── main.py                # 実行起点（YahooFlowを呼び出し）
-        └── flow/
-            ├── main_flow.py          # 一連の処理フロー
-            ├── detail_page_flow.py   # 詳細ページの処理フロー
-            └── base/
-                ├── chrome.py              # Chrome（クラス名：Chrome）
-                ├── selenium.py            # Selenium（クラス名：Selenium）
-                ├── spreadsheet_read.py    # スプシ読取（クラス名：SpreadsheetReader）
-                ├── spreadsheet_write.py   # スプシ書込（クラス名：SpreadsheetWriter）
-                ├── number_calculator.py   # 数値計算（クラス名：PriceCalculator）
-                ├── url_builder.py         # URL作成（クラス名：UrlBuilder）
-                └── utils.py               # 汎用関数（クラス名なし or Utils）
+tokyu_sns_image_tool
+├── docs
+│   ├── 00_setup_guide.md
+│   ├── 01_usage_guide.md
+│   ├── 02_requirements_notes.md
+│   ├── 03_project_structure.md
+│   ├── 04_api_keys_handling.md
+│   ├── 05_dev_rules.md
+│   ├── 06_naming_convention.md
+│   ├── 07_git_flow.md
+│   ├── 08_commit_message_format.md
+│   ├── 09_branching_rule.md
+│   ├── 10_pr_guidelines.md
+│   ├── 11_pr_template.md
+│   ├── 12_merge_policy.md
+│   ├── 13_review_checklist.md
+│   ├── 15. comment_guide.md
+│   ├── 16_selenium_selector_guideline
+│   └── 17_selenium.md
+├── installer
+│   ├── bin
+│   │   ├── bat
+│   │   └── requirements.txt
+│   ├── config
+│   │   └── config.json
+│   ├── data
+│   │   ├── input
+│   │   │   ├── fonts
+│   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
+│   │   │   └── template
+│   │   │       ├── A.png
+│   │   │       ├── B.png
+│   │   │       ├── C.png
+│   │   │       ├── D.png
+│   │   │       └── LAST.png
+│   │   └── output
+│   │       └── logs
+│   ├── src
+│   │   ├── flow
+│   │   │   ├── base
+│   │   │   │   ├── chrome.py
+│   │   │   │   ├── image_editor.py
+│   │   │   │   ├── path.py
+│   │   │   │   ├── selenium.py
+│   │   │   │   └── sqlite.py
+│   │   │   ├── generate_image_flow.py
+│   │   │   ├── input_db_flow.py
+│   │   │   ├── main_flow.py
+│   │   │   └── scraper_flow.py
+│   │   └── main.py
+│   └── tests
+├── README.md
+└── requirements.txt
 ```
 
 
