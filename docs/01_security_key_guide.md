@@ -2,7 +2,7 @@
 
 ## 【目的】
 
-このガイドは、APIキーやID・パスワードなどの機密情報を安全に管理・共有するためのルールをまとめたものです。
+このガイドは、APIキーやID・パスワード、クラウド認証情報（例：GCP・AWSのJSONファイル）などの機密情報を安全に管理・共有するためのルールをまとめたものです。
 プロジェクトごとに情報の保存場所・形式・取り扱い方法を統一し、意図しない漏洩を防ぎます。
 
 
@@ -25,11 +25,14 @@
 ### 🔐 保存先について
 
 - セキュリティ関連のキーやID/パスワードはすべて以下のファイルに保存します：
-```bash
-pjt_name/installer/config/config.json
+```plaintext
+installer/
+└── config/
+    ├── config.json                # APIキーやID/PASSなど
+    ├── gcp_service_account.json   # GCPサービスアカウントキー
+    └── aws_credentials.json       # AWS認証情報（必要に応じて）
 ```
 
-- ルートはプロジェクトディレクトリ（例：`project_name/installer/...`）からの相対パスです。
 
 <br>
 
