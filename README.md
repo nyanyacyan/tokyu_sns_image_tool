@@ -63,22 +63,15 @@ python main.py
 tokyu_sns_image_tool
 ├── docs
 │   ├── 00_setup_guide.md
-│   ├── 01_usage_guide.md
-│   ├── 02_requirements_notes.md
-│   ├── 03_project_structure.md
-│   ├── 04_api_keys_handling.md
-│   ├── 05_dev_rules.md
-│   ├── 06_naming_convention.md
-│   ├── 07_git_flow.md
-│   ├── 08_commit_message_format.md
-│   ├── 09_branching_rule.md
-│   ├── 10_pr_guidelines.md
-│   ├── 11_pr_template.md
-│   ├── 12_merge_policy.md
-│   ├── 13_review_checklist.md
-│   ├── 15. comment_guide.md
-│   ├── 16_selenium_selector_guideline
-│   └── 17_selenium.md
+│   ├── 01_security_key_guide.md
+│   ├── 02_naming_guide.md
+│   ├── 03_dir_guide.md
+│   ├── 04_coding_guide.md
+│   ├── 05_branch_guide.md
+│   ├── 06_commit_guide.md
+│   ├── 07_pr_guide.md
+│   ├── 08. comment_guide.md
+│   └── 09_selenium.md
 ├── installer
 │   ├── bin
 │   │   ├── bat
@@ -86,6 +79,7 @@ tokyu_sns_image_tool
 │   ├── config
 │   │   └── config.json
 │   ├── data
+│   │   ├── db
 │   │   ├── input
 │   │   │   ├── fonts
 │   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
@@ -116,6 +110,7 @@ tokyu_sns_image_tool
 │   │   └── main.py
 │   └── tests
 ├── README.md
+├── .gitignore
 └── requirements.txt
 ```
 

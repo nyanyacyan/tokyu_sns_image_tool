@@ -27,6 +27,7 @@ tokyu_sns_image_tool
 │   ├── config
 │   │   └── config.json
 │   ├── data
+│   │   ├── db
 │   │   ├── input
 │   │   │   ├── fonts
 │   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
@@ -57,8 +58,8 @@ tokyu_sns_image_tool
 │   │   └── main.py
 │   └── tests
 ├── README.md
+├── .gitignore
 └── requirements.txt
-
 ```
 
 <br>
