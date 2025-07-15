@@ -62,55 +62,59 @@ python main.py
 ```
 tokyu_sns_image_tool
 ├── docs
-│   ├── 00_setup_guide.md
-│   ├── 01_usage_guide.md
-│   ├── 02_requirements_notes.md
-│   ├── 03_project_structure.md
-│   ├── 04_api_keys_handling.md
-│   ├── 05_dev_rules.md
-│   ├── 06_naming_convention.md
-│   ├── 07_git_flow.md
-│   ├── 08_commit_message_format.md
-│   ├── 09_branching_rule.md
-│   ├── 10_pr_guidelines.md
-│   ├── 11_pr_template.md
-│   ├── 12_merge_policy.md
-│   ├── 13_review_checklist.md
-│   ├── 15. comment_guide.md
-│   ├── 16_selenium_selector_guideline
-│   └── 17_selenium.md
+│   ├── 00_setup_guide.md
+│   ├── 01_usage_guide.md
+│   ├── 02_requirements_notes.md
+│   ├── 03_project_structure.md
+│   ├── 04_api_keys_handling.md
+│   ├── 05_dev_rules.md
+│   ├── 06_naming_convention.md
+│   ├── 07_git_flow.md
+│   ├── 08_commit_message_format.md
+│   ├── 09_branching_rule.md
+│   ├── 10_pr_guidelines.md
+│   ├── 11_pr_template.md
+│   ├── 12_merge_policy.md
+│   ├── 13_review_checklist.md
+│   ├── 15. comment_guide.md
+│   ├── 16_selenium_selector_guideline
+│   └── 17_selenium.md
 ├── installer
-│   ├── bin
-│   │   ├── bat
-│   │   └── requirements.txt
-│   ├── config
-│   │   └── config.json
-│   ├── data
-│   │   ├── input
-│   │   │   ├── fonts
-│   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
-│   │   │   └── template
-│   │   │       ├── A.png
-│   │   │       ├── B.png
-│   │   │       ├── C.png
-│   │   │       ├── D.png
-│   │   │       └── LAST.png
-│   │   └── output
-│   │       └── logs
-│   ├── src
-│   │   ├── flow
-│   │   │   ├── base
-│   │   │   │   ├── chrome.py
-│   │   │   │   ├── image_editor.py
-│   │   │   │   ├── path.py
-│   │   │   │   ├── selenium.py
-│   │   │   │   └── sqlite.py
-│   │   │   ├── generate_image_flow.py
-│   │   │   ├── input_db_flow.py
-│   │   │   ├── main_flow.py
-│   │   │   └── scraper_flow.py
-│   │   └── main.py
-│   └── tests
+│   ├── bin
+│   │   ├── bat
+│   │   └── requirements.txt
+│   ├── config
+│   │   └── config.json
+│   ├── data
+│   │   ├── input
+│   │   │   ├── fonts
+│   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
+│   │   │   └── template
+│   │   │       ├── A.png
+│   │   │       ├── B.png
+│   │   │       ├── C.png
+│   │   │       ├── D.png
+│   │   │       └── LAST.png
+│   │   └── output
+│   │       └── logs
+│   ├── src
+│   │   ├── flow
+│   │   │   ├── base
+│   │   │   │   ├── chrome.py
+│   │   │   │   ├── image_editor.py
+│   │   │   │   ├── path.py
+│   │   │   │   ├── selenium.py
+│   │   │   │   └── sqlite.py
+│   │   │   ├── const
+│   │   │   │   ├── const_element.py
+│   │   │   │   ├── const_table.py
+│   │   │   │   └── prompt.py
+│   │   │   ├── generate_image_flow.py
+│   │   │   ├── input_db_flow.py
+│   │   │   ├── main_flow.py
+│   │   │   └── scraper_flow.py
+│   │   └── main.py
+│   └── tests
 ├── README.md
 └── requirements.txt
 ```
