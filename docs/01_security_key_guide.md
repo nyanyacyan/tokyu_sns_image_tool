@@ -89,3 +89,18 @@ installer/
 - config.json の読み込み処理は、config_loader.py や config_manager.py などの専用ファイルで一元管理すると保守しやすくなります。
 - キー名（SLACK, OPENAI など）は今後統一リストで管理することも検討してください。
 
+<br>
+
+## ✅ セキュリティキー管理チェックリスト
+
+セキュリティキーやAPI認証情報を扱う際には、以下を確認しましょう：
+
+- [ ] `installer/config/` 以下に config.json を作成し機密情報をまとめた
+- [ ] config.json は JSON形式で書き、キー名はすべて大文字で統一した
+- [ ] サービスごとにネスト構造を使って分類した（例："SLACK", "OPENAI"）
+- [ ] .env ファイルは使用していない（exe化を想定）
+- [ ] config.json を Git に絶対に含めていない（git status で確認済）
+- [ ] .gitignore に `*config.json` の記述が含まれている
+- [ ] config.json の内容は、暗号化や安全な方法でチームに共有した
+- [ ] 読み込み処理は `config_loader.py` など専用ファイルで一元化している
+
