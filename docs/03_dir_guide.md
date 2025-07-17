@@ -19,7 +19,8 @@ tokyu_sns_image_tool
 │   ├── 06_commit_guide.md
 │   ├── 07_pr_guide.md
 │   ├── 08. comment_guide.md
-│   └── 09_selenium.md
+│   ├── 09_selenium.md
+│   └── 10_const_guide.md
 ├── installer
 │   ├── bin
 │   │   ├── bat
@@ -27,7 +28,7 @@ tokyu_sns_image_tool
 │   ├── config
 │   │   └── config.json
 │   ├── data
-│   │   ├── db
+│   │   ├── pickle
 │   │   ├── input
 │   │   │   ├── fonts
 │   │   │   │   └── MPLUSRounded1c-ExtraBold.ttf
@@ -45,12 +46,14 @@ tokyu_sns_image_tool
 │   │   │   │   ├── chrome.py
 │   │   │   │   ├── image_editor.py
 │   │   │   │   ├── path.py
+│   │   │   │   ├── utils.py
+│   │   │   │   ├── ai.py
 │   │   │   │   ├── selenium.py
-│   │   │   │   └── sqlite.py
+│   │   │   │   └── pickle.py
 │   │   │   ├── const
 │   │   │   │   ├── const_element.py
-│   │   │   │   ├── const_table.py
-│   │   │   │   └── prompt.py
+│   │   │   │   ├── const_str.py
+│   │   │   │   └── const_prompt.py
 │   │   │   ├── generate_image_flow.py
 │   │   │   ├── input_db_flow.py
 │   │   │   ├── main_flow.py
