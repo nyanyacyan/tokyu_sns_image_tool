@@ -35,6 +35,8 @@ def main():
     #print("ピクルファイルのパス:",pickle_dir)
     #print("テンプレ画像ディレクトリ:",template_dir)
     #print("出力した画像のパス:",image_dir)
+    
+    #login_info = 
     login_info = get_login_info()
     open_login = open_login_page()
     
