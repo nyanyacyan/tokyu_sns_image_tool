@@ -39,6 +39,11 @@ def open_login_page(): # 自動ログイン
         # 各要素を探して、ID/PW自動入力
         driver.find_element(By.ID,"txtLoginId").send_keys(user_id)
         driver.find_element(By.ID,"txtLoginPass").send_keys(user_pass)
+        
+        #　チェックボックスにレ点自動入力
+        checkbox_ui = driver.find_element(By.CSS_SELECTOR,".jqTransformCheckboxWrapper a.jqTransformCheckbox")
+        if "jqTransformChecked" not in checkbox_ui.get_attribute("class"):
+            checkbox_ui.click()
 
         # ログインボタン自動クリック
         driver.find_element(By.CSS_SELECTOR,"#login-btn a").click()
