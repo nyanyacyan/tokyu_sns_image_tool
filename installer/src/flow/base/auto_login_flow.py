@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」
 from selenium.webdriver.support.ui import WebDriverWait # 「selenium.webdriver.support.ui」というモジュールから取り込んだ「WebDriberWait」という待機オブジェクト作るクラス
 from selenium.webdriver.support import expected_conditions as EC # 「selenium.webdriver.support」というモジュールから取り込んだ「expected_conditions」という「どんな条件を満たすまで待つか」という待機オブジェクトを作るモジュールを略して「EC」としている
 from pathlib import Path # 「pathlib」というファイルやフォルダのpathを扱うモジュールから、pathを取り扱う「Path」というクラスを取り組む
+from selenium.webdriver.remote.webelement import WebElement # 「slenium.webdriver.remote.webelement」というモジュールから取り込んだ「WebElment」という、ブラウザ上の要素を操作するクラス
 import json,time,random # 「json」、「time」、「random」という標準ライブラリのモジュールを取り込む
 
 # 自作モジュールimport
@@ -37,12 +38,12 @@ class Auto_Login_Flow:
 # ------------------------------------------------------------------------------
     
     # 関数定義    
-    def find_element(self,driver,by,value,timeout=10):
+    def find_element(self,driver,by,value,timeout=10) -> WebElement:
         """指定した要素を探して返す"""
         
         try:
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((by,value))) # WebDriverWaitをインスタンス化　Chromeブラウザで、指定の属性が出現するまで最大10秒待機
-            element = driver.find_element(by,value,) # 引数driverから、webdriver.Chromeクラスを貰い、そこからfind_elementメソッドを呼び出して、byとvalueに渡された引数を渡して、属性を探す
+            el = driver.find_element(by,value,) # 引数driverから、webdriver.Chromeクラスを貰い、そこからfind_elementメソッドを呼び出して、byとvalueに渡された引数を渡して、属性を探す
             self.logger.info_log(f"[find_element]要素を取得成功: by={by},value={value}") # 要素取得成功のログ
             
         except TimeoutException as e: # 時間内に要素が見つからなかった時の処理
@@ -50,45 +51,35 @@ class Auto_Login_Flow:
         
             raise
         
-        return element
+        return el
 # ------------------------------------------------------------------------------    
 
     # 関数定義    
-    def input_text(self,driver,by,locator,text):
+    def input_text(self,el: WebElement,text) -> None:
         """指定した要素を探し出して文字を入力する"""
         
         try:
-            element = self.find_element(driver,by,locator) # find_elementメソッドを呼び出してインスタンス化
-            element.clear() # webdriver.chromeクラスのclearというメソッドを呼び出して、文字列を消去する
-            element.send_keys(text) # find_elementメソッド内のdriver.find_elementメソッドで、戻り値がWebElementのオブジェクトが返ってきて、そのWebElementオブジェクトに属しているsend_keysメソッドを呼び出して、文字を送る。
-            """send_keysの実行フロー
-                input_text()
-                └→ self.find_element()
-                    └→ driver.find_element() ← WebDriverのメソッド
-                        └→ 戻り値: WebElementオブジェクト
-                └→ element.clear()
-                └→ element.send_keys(text)
-                                            """
-            self.logger.info_log(f"[input_text]入力成功: by={by},locator={locator}") # 要素取得成功のログ
+            el.clear() # webdriver.chromeクラスのclearというメソッドを呼び出して、文字列を消去する
+            el.send_keys(text) # find_elementメソッド内のdriver.find_elementメソッドで、戻り値がWebElementのオブジェクトが返ってきて、そのWebElementオブジェクトに属しているsend_keysメソッドを呼び出して、文字を送る。
+            self.logger.info_log(f"[input_text]入力成功:text={text}") # 要素取得成功のログ
         
         except Exception as e:
-            self.logger.error_log(f"[input_text]入力失敗: by={by},locator={locator},error={e}") # 要素取得失敗のログ
+            self.logger.error_log(f"[input_text]入力失敗:text={text},error={e}") # 要素取得失敗のログ
             
             raise
 # ------------------------------------------------------------------------------
     
-    def click_element(self,driver,by,value,timeout=10):
+    def click_element(self,el: WebElement,timeout=10) -> None:
         """指定した要素をクリックする（待機+ログ+例外処理付き）"""
         
         try:
-            WebDriverWait(driver, timeout).until(EC.element_to_be_clickable((by,value)))# WebDriverWaitをインスタンス化　Chromeブラウザで、指定の属性が出現するまで最大10秒待機
-            element = self.find_element(driver,by,value) # webdriver.chromeクラスのclearというメソッドを呼び出して、文字列を消去する
-            element.click() # find_elementメソッド内のdriver.find_elementメソッドで、戻り値がWebElementのオブジェクトが返ってきて、そのWebElementオブジェクトに属しているclickメソッドを呼び出してクリックする。
+            WebDriverWait(el.parent, timeout).until(EC.element_to_be_clickable((el)))# WebDriverWaitをインスタンス化　Chromeブラウザで、指定の属性が出現するまで最大10秒待機
+            el.click() # find_elementメソッド内のdriver.find_elementメソッドで、戻り値がWebElementのオブジェクトが返ってきて、そのWebElementオブジェクトに属しているclickメソッドを呼び出してクリックする。
             
-            self.logger.info_log(f"[click_element]クリック成功: by={by},value={value}") # 要素取得成功のログ
+            self.logger.info_log(f"[click_element]クリック成功") # 要素取得成功のログ
         
         except Exception as e:
-            self.logger.error_log(f"[click_element]クリック失敗: by={by},value={value},error={e}") # 要素取得失敗のログ
+            self.logger.error_log(f"[click_element]クリック失敗:error={e}") # 要素取得失敗のログ
             raise
 # ------------------------------------------------------------------------------    
     # 関数定義
@@ -100,7 +91,7 @@ class Auto_Login_Flow:
         
 # ------------------------------------------------------------------------------    
     # 関数定義
-    def is_logged_in(self,driver,timeout=12):
+    def is_logged_in(self,driver,timeout=12) -> bool:
         """URL一致でログイン済みとみなす"""
 
         if driver.current_url.startswith(self.loggedin_url): # 現在のURLとjsonファイルで設定したURLが一致しているか判定
@@ -120,13 +111,26 @@ class Auto_Login_Flow:
             return False
 # ------------------------------------------------------------------------------  
     # 関数定義      
-    def load_config(self):
+    def load_config(self) -> tuple[str,str,str,str,str]:
         """jsonファイルの読み込み"""
         
         with open(self.config_path, encoding="utf-8") as f: # コンストラクタで設定したjsonファイルのパスにアクセスして開く
             cfg = json.load(f)["TOKYU_JYUTAKU_LEASE"] # "TOKYU_JYUTAKU_LEASE"のファイルを読み込む
             
         return cfg["ID"], cfg["PASS"], cfg["URL"], cfg["LOGINED_URL"], cfg["LOGGED_IN_CSS"]  # 各jsonファイル設定値を読み込み
+    
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def checkbox_reset(self,el: WebElement) -> None:
+        """チェックボックスのリセット"""
+        
+        if el.is_selected():
+            el.click()
+            self.logger.info_log(f"チェックボックスをリセット（OFF）しました")
+            
+        else:
+            self.logger.info_log(f"チェックボックスは既にOFFです")
+
 
 # **********************************************************************************
 
