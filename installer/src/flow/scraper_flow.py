@@ -1,9 +1,11 @@
-# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$%$$$$$$$$$$$$$$$$$$$
+# $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # installer/src/flow/scraper_flow.py
 
 # 標準モジュールimport
 from selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラス
-
+from selenium.webdriver.support.ui import WebDriverWait # 「selenium.webdriver.support.ui」というモジュールから取り込んだ「WebDriberWait」という待機オブジェクト作るクラス
+from selenium.webdriver.support import expected_conditions as EC # 「selenium.webdriver.support」というモジュールから取り込んだ「expected_conditions」という「どんな条件を満たすまで待つか」という待機オブジェクトを作るモジュールを略して「EC」としている
+from selenium.common.exceptions import TimeoutException # 「selenium.common.exceptions」というモジュールから、「TimeoutException」という操作や処理が設定時間内に完了されなかった場合に通知するクラス
 # 自作モジュールimport
 from flow.base.chrome import Chrome # chrome.pyからChromeクラスを取り込む
 from flow.base.auto_login_flow import Auto_Login_Flow # auto_login_flow.pyからAuto_Login_Flowクラスを取り込む
@@ -35,6 +37,8 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         # ログイン状態チェック
         if self.autologin.is_logged_in(self.chrome_driver): # is_logged_inメソッドを呼び出して、ログイン状態をチェック
             self.autologin.open_new_tab(self.chrome_driver,self.loggedin_url) # ログイン状態であったら、open_new_tabメソッドを呼び出して、ログイン後のブラウザの新しいタブを開く 
+            self.chrome_driver.get(self.loggedin_url)
+        
         
         else:
         # IDとPW欄を探す
@@ -88,10 +92,32 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         # 検索をクリック    
             self.autologin.wait_random() # ランダム時間で待機
             self.autologin.click_element(cb_ke_el) # Auto_Login_Flowクラスのfind_elementメソッドを呼び出して、WebElmentの戻り値を渡して、チェックボックスをクリックする
+            
+        # iframeを探す
+            self.autologin.swich_to_iframe(self.chrome_driver,By.ID,"ifrMain") # Auto_Login_Flowクラスのswich_to_iframeメソッドを呼び出して、id=ifrMainという属性を探して、iframe内へ移動する
+        
+        # 詳細ボタンを探す
+            a_elems = self.autologin.find_elements(self.chrome_driver,By.XPATH,"//a[contains(@onclick, 'window.open')][.//img[@alt='詳細']]") # Auto_Login_Flowクラスのfind_elementsメソッドを呼び出して、xpathで詳細ボタンの要素を探す
+    
+            for a in a_elems:
+        
+        # Onclickを探す
+                oc = self.autologin.get_onclick(a)
+                
+
+        # URLを抽出する
+                first = self.autologin.parse_window_open_first_arg(oc)
+                
+        # URLを結合する
+                rel = self.autologin.simplify_detail_url(first or "")
+                
+        # 相対URLを絶対URLに変換
+                self.autologin.to_absolute_url(rel or "",self.chrome_driver)
+                
     # ------------------------------------------------------------------------------
 
     # 関数定義
-    
+   
     # ------------------------------------------------------------------------------
     
     # 関数定義
