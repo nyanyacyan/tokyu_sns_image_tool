@@ -204,163 +204,89 @@ class Auto_Login_Flow:
         
         inside = m.group(1) # reモジュールで検索を実行した結果として返される「Match」オブジェクトのgroupメソッドを呼び出し、（）で指定した引数部分を取得して、onclickの値を取得する。
         
-        depth = 0
-        quote_ch = None
-        arg_chars = []
+        depth = 0 # カッコの深さを変数depthにて数える
+        quote_ch = None # 'や"に出会ったら文字列の先頭として変数quote_chにて捉える
+        arg_chars = [] # 抜き出した第一引数の文字を変数arg_charsに1文字ずつ貯める
         
-        for ch in inside:
-            if quote_ch:
-                arg_chars.append(ch)
-                if ch == quote_ch:
-                    quote_ch = None
+        for ch in inside: # リスト変数insideから1文字ずつを取り出して、変数chへ代入して、以下のいずれかのif文処理を行う
+            
+            if quote_ch: # 変数quote_chがTrueの時の処理。’や”があった場合の次の文字列、つまりaとかbの通常の文字列の処理
+                arg_chars.append(ch) # appendという初期から備わっている、リスト型メソッドを用いて引数chで受け取った1文字を、リストarg_charsへ順番に追加していく
+                if ch == quote_ch: # 変数chと変数quote_chが一致した場合の処理。つまり最初に’や”が補足され、その次に’や”を補足した場合の処理
+                    quote_ch = None # 変数quote_chにNoneを代入して、この処理をスキップ
                 continue
             
-            if ch in ("'",'"'):
-                quote_ch = ch
-                arg_chars.append(ch)
+            if ch in ("'",'"'): # 変数chに"'",'"'がある場合の処理
+                quote_ch = ch # 変数quote_chへ、変数chの値、つまり’や”を代入する
+                arg_chars.append(ch) # appendという初期から備わっている、リスト型メソッドを用いて引数chで受け取った1文字を、リストarg_charsへ順番に追加していく
                 continue
             
-            if ch == "(":
-                depth += 1
-                arg_chars.append(ch)
+            if ch == "(": # 変数chと「（　」の文字列が一致した場合の処理
+                depth += 1 # 変数depthへ1を足して代入
+                arg_chars.append(ch) # appendという初期から備わっている、リスト型メソッドを用いて引数chで受け取った1文字を、リストarg_charsへ順番に追加していく
                 continue
                 
-            if ch == ")":
-                depth -= 1
-                arg_chars.append(ch)
+            if ch == ")": # 変数chと「　）」の文字列が一致した場合の処理
+                depth -= 1 # 変数depthへ1を引いて代入
+                arg_chars.append(ch) # appendという初期から備わっている、リスト型メソッドを用いて引数chで受け取った1文字を、リストarg_charsへ順番に追加していく
                 continue
                 
-            if ch == "," and depth == 0:
+            if ch == "," and depth == 0: # 変数chが「,」と一致した場合、と変数depthが0で一致した場合、文字列が終わったと判断して、for文処理を抜け出す。
                 break
             
-            arg_chars.append(ch)
+            arg_chars.append(ch) # appendという初期から備わっている、リスト型メソッドを用いて引数chで受け取った1文字を、リストarg_charsへ順番に追加していく
             
-        first_arg = "".join(arg_chars).strip()
-        
-        if first_arg and first_arg[0] in ("'",'"'):
-            q = first_arg[0]
-            
-            if not first_arg.rstrip().endswith(q):
-                self.logger.error_log(f"[parse_window_open_first_arg] 末尾クォート欠落を検知。補完します")
-                first_arg = first_arg + q
-            
-            if first_arg:
-                self.logger.info_log(f"[parse_window_open_first_arg] 第一引数抽出成功: {first_arg}")
-            else:
-                self.logger.info_log(f"[parse_window_open_first_arg] 第一引数を抽出できませんでした")
+        first_arg = "".join(arg_chars).strip() # ""という空文字を区切りとして、変数arg_chars内の1文字ずつを、joinという初期から備わっている文字型メソッドを用いて結合し、同じく初期から備わっている文字型メソッドのstiripを引数なしで指定することで、文字列前後の空白・改行・空白文字を削除して、変数first_argに代入する。
                     
-        return first_arg or None    
-
-# ------------------------------------------------------------------------------
-    # 関数定義
-    def evaluate_js_concat(self,expr: str) -> Optional[str]:
-        """JavaScriptの文字列連結式を評価して返す"""
-        if not expr:
-            self.logger.info_log(f"[evaluate_js_concat] expが空のためNoneを返します")
-            return None
-        
-        s = expr.strip()
-        if len(s) >= 2 and s[0] in ("'",'"') and s[-1] == s[0]:
-            plain = s[1:-1]
-            self.logger.info_log(f"[evaluate_js_concat] シンプル文字列として解釈:{plain}")
-            return plain
-
-        tokens = []
-        buf = ""
-        depth = 0
-        quote_ch = None
-        
-        for ch in s:
-            if quote_ch:
-                buf += ch
-                if ch == quote_ch:
-                    quote_ch = None
-                continue
+        if first_arg and first_arg[0] in ("'",'"'): # 変数first_argがTrueかつ、［0］で指定した、変数first_argの一文字目が、「’」か「”」である場合は、以下の処理を行う。
+            q = first_arg[0] # 変数first_argの一文字目を、変数qに代入する。
             
-            if ch in ("'",'"'):
-                quote_ch = ch
-                buf += ch
-                continue
+            if not first_arg.rstrip().endswith(q): # 変数first_argの末尾を空白を削除する「rtstrip」というメソッドと、引数で変数qにて渡された値が、変数first_argの文字列の最後にあるかをチェックする「endswith」というメソッドを使用して、それが否定されてTrueだった場合、次の処理が行われる。つまり末尾に「”か’」が無ければ処理が行われる。
+                self.logger.error_log(f"[parse_window_open_first_arg] 末尾クォート欠落を検知。補完します") # 抽出した文字列の末尾に「”か’」が無かったときのログ
+                first_arg = first_arg + q # 変数first_argに変数qを足して、変数first_argへ代入する。
             
-            if ch == "(":
-                depth += 1
-                buf += ch
-                continue
-            
-            if ch == ")":
-                depth -= 1
-                buf += ch
-                continue
-            
-            if ch == "+" and depth == 0:
-                if buf.strip():
-                    tokens.append(buf.strip())
-                buf = ""
-                continue
+            if first_arg: # 変数first_argの末尾に「”か’」がある場合、次の処理が行われる。
+                self.logger.info_log(f"[parse_window_open_first_arg] 第一引数抽出成功: {first_arg}") # 抽出した文字列の末尾に「”か’」が有ったときのログ
                 
-            buf += ch
-        
-        if buf.strip():
-            tokens.append(buf.strip())
-        
-        parts: list[str] = []
-        for t in tokens:
-            
-            if len(t) >= 2 and t[0] in ("'",'"') and t[-1] == t[0]:
-                val = t[1:-1]
-                parts.append(val)
-                self.logger.info_log(f"[evaluate_js_concat] 文字列トークン:{[val]}")
-                continue
-            
-            m2 = re.match(r"encodeURI\s*\(\s*(['\"])(.*?)\1\s*\)",t)
-            if m2:
-                original = m2.group(2)
-                encoded = quote(original,safe="~()*!.'")
-                parts.append(encoded)
-                self.logger.info_log(f"[evaluate_js_concat] encodeURIトークン: 元={original}, エンコード後={encoded}")
-                continue
+            else: # 上記いづれの条件を満たさなかった場合、次の処理が行われる。
+                self.logger.info_log(f"[parse_window_open_first_arg] 第一引数を抽出できませんでした") # 文字列の抽出に失敗したときのログ
                     
-            self.logger.error_log(f"[evaluate_js_concat] 評価できないトークンがあります: {t}")
-            parts.append(t)
-            
-        result = "".join(parts)
-        self.logger.info_log(f"[evaluate_js_concat] 連結結果: {result}")
-        return result
+        return first_arg or None # 変数first_argに値があれば、それを返し、ない場合はNoneを返す
 
 # ------------------------------------------------------------------------------
     # 関数定義
     def to_absolute_url(self,path_or_url: str,driver) -> Optional[str]:
         """相対URLを絶対URLに変換して返す"""
-        if not path_or_url:
-            self.logger.info_log(f"[to_absolute_url] 空のURLが渡されました")
+        
+        if not path_or_url: # 渡された引数path_or_urlがTrueではない時、以下の処理を行う。
+            self.logger.info_log(f"[to_absolute_url] 空のURLが渡されました") # 空のURLが渡されたときのログ
             return ""
         
-        if re.match(r"^https?://",path_or_url):
-            self.logger.info_log(f"[to_absolute_url] 既に絶対URLです: {path_or_url}")
+        if re.match(r"^https?://",path_or_url): # 正規表現reモジュールのmatchメソッドで、第一引数で指定された文字列と、第二引数で指定された変数に格納されている文字列が一致した場合、以下の処理を行う。
+            self.logger.info_log(f"[to_absolute_url] 既に絶対URLです: {path_or_url}") # 絶対URLが渡されたときのログ
             return path_or_url
         
-        base =  "https://map.cyber-estate.jp/mediation/main/" 
-        abs_url =  urljoin(base,path_or_url)
+        base =  "https://map.cyber-estate.jp/mediation/main/"  # 結合するURLを変数baseへ代入する
+        abs_url =  urljoin(base,path_or_url) # urljoinメソッドを使用して、変数baseと変数path_or_urlを結合して、変数abs_urlへ代入する
         
-        self.logger.info_log(f"[to_absolute_url] 相対URLを絶対URLに変換: base={base} + path={path_or_url} -> {abs_url}")
+        self.logger.info_log(f"[to_absolute_url] 相対URLを絶対URLに変換: base={base} + path={path_or_url} -> {abs_url}") # URL結合成功時のログ
         return abs_url
     
 # ------------------------------------------------------------------------------
     # 関数定義
     def simplify_detail_url(self,expr: str) -> str:
         """詳細URLを簡略化して返す"""
-        m = re.match(r"""^['"]([^'"]*?&hid=)['"]\s*\+\s*encodeURI\(\s*['"]([^'"]+)['"]\s*\)\s*\+\s*['"]([^'"]+)['"]\s*$""",expr.strip())
+        
+        m = re.match(r"""^['"]([^'"]*?&hid=)['"]\s*\+\s*encodeURI\(\s*['"]([^'"]+)['"]\s*\)\s*\+\s*['"]([^'"]+)['"]\s*$""",expr.strip()) # 正規表現reモジュールのmatchメソッドを使用して、変数exprの文字列の前後をstripメソッドで空白を削除した文字列が、matchメソッドの第一引数で指定した文字列と適合するか調べ、適合した場合、その値を変数mに代入する。
         
         if m:
-            prefix = m.group(1)
-            hid_val = m.group(2)
-            suffix = m.group(3)
-            hid_enc = quote(hid_val,safe="~()*!.'")
-            result = prefix + hid_enc + suffix
-            self.logger.info_log(f"[simplyfy_detail_url] 特殊パターンで整形: {result}")
+            prefix = m.group(1) # reモジュールで検索を実行した結果として返される「Match」オブジェクトのgroupメソッドを呼び出し、（）で指定した引数部分の文字列を取得して、変数prefixへ代入する
+            hid_val = m.group(2) # reモジュールで検索を実行した結果として返される「Match」オブジェクトのgroupメソッドを呼び出し、（）で指定した引数部分の文字列を取得して、変数hid_valへ代入する
+            suffix = m.group(3) # reモジュールで検索を実行した結果として返される「Match」オブジェクトのgroupメソッドを呼び出し、（）で指定した引数部分の文字列を取得して、変数suffixへ代入する
+            hid_enc = quote(hid_val,safe="~()*!.'") # 取得した文字列をURLとして使えるように、変換するメソッドである「quote」を用いて、第一引数へ変換する文字列をしていして、第二引数へエンコードしない文字列をしていし、変数hid_encに代入する
+            result = prefix + hid_enc + suffix # 変数prefix、hid_enc、suffixをそれぞれ足して、変数resultへ代入する
+            self.logger.info_log(f"[simplyfy_detail_url] 特殊パターンで整形: {result}") # 文字列の結合に成功したときのログ
             return result
         
-        self.logger.info_log(f"[simplify_detail_url] 通常パターンで整形")
-        return self.evaluate_js_concat(expr)
 #**********************************************************************************
 
