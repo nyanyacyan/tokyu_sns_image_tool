@@ -10,7 +10,7 @@ from pathlib import Path # 「pathlib」というファイルやフォルダのp
 from selenium.webdriver.remote.webelement import WebElement # 「slenium.webdriver.remote.webelement」というモジュールから取り込んだ「WebElment」という、ブラウザ上の要素を操作するクラス
 from urllib.parse import urljoin,quote,urlparse # 「urllib.parse」というURLを扱うモジュールから、「urljoin」と「quote」という関数を取り込む
 from contextlib import contextmanager # 「contextlib」という標準ライブラリのモジュールから、「contextmanager」というデコレーター関数を取り込む
-from typing import Optional,Iterable,List # 「typing」という標準ライブラリのモジュールから、「Optional」、「Iterable」、「List」という型ヒントを取り込む
+from typing import Optional,Iterable,List,Dict # 「typing」という標準ライブラリのモジュールから、「Optional」、「Iterable」、「List」、「Dict」という型ヒントを取り込む
 import json,time,random,re,pickle # 「json」、「time」、「random」、「re」、「pickle」という標準ライブラリのモジュールを取り込む
 
 # 自作モジュールimport
@@ -187,6 +187,13 @@ class Auto_Login_Flow:
             
             return ""
     
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def get_detail_links(self,driver) -> list[WebElement]:
+        """一覧から『詳細』ボタンのa要素を全て取得"""
+        return self.find_element(driver,By.XPATH,"//a[contains(@onclick,'window.open')][.//img[@alt='詳細']]")
+
+
 # ------------------------------------------------------------------
     # 関数定義
     def parse_window_open_first_arg(self,onclick: str) -> Optional[str]:
@@ -286,7 +293,116 @@ class Auto_Login_Flow:
             hid_enc = quote(hid_val,safe="~()*!.'") # 取得した文字列をURLとして使えるように、変換するメソッドである「quote」を用いて、第一引数へ変換する文字列をしていして、第二引数へエンコードしない文字列をしていし、変数hid_encに代入する
             result = prefix + hid_enc + suffix # 変数prefix、hid_enc、suffixをそれぞれ足して、変数resultへ代入する
             self.logger.info_log(f"[simplyfy_detail_url] 特殊パターンで整形: {result}") # 文字列の結合に成功したときのログ
-            return result
         
-#**********************************************************************************
+        return result
 
+        
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def clean_text(self,text:str) -> str:
+        """改行や余分なスペースをまとめて、前後空白を取る"""
+        original = text # clean_textメソッドの引数textに渡された文字列を、変数originalへ代入する。
+        cleaned = re.sub(r"\s+"," ",text).strip() # 正規表現reモジュールのsubメソッドを使用して、第一引数で指定した空白文字列を探して、第二引数で指定した半角文字を、第三引数で指定した文字列内を検索して置き換えて、stripメソッドを用いて文字の前後の空白を削除し、変数originalへ代入する。
+    
+        if original != cleaned:# 変数originalと変数cleanedが一致しない場合、以下の処理を行う。
+            self.logger.info_log(f"[clean_text] 正規化を実施: before={repr(original)}, after={repr(cleaned)}") # 成功したときのログ
+        
+        else:
+            self.logger.info_log(f"[clean_text] 変更無し: {repr(original)}") # 失敗したときのログ
+        
+        return cleaned
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def sanitize_title(self,title:str) -> str:
+        """ファイル名などに使えない記号を安全な文字に変える"""
+        original = title # sanitize_titleメソッドの引数titleに渡された文字列を、変数originalへ代入する。
+        sanitized = re.sub(r'[\\/:*?"<>|]',"_",title) # 正規表現reモジュールのsubメソッドを使用して、第一引数で指定した空白文字列を探して、第二引数で指定した文字列を、第三引数で指定した文字列内を検索して置き換えて、変数sanitizeへ代入する。
+        
+        if original != sanitized: # 変数originalと変数sanitizedが一致しない場合、以下の処理を行う。
+            self.logger.info_log(f"[sanitize_title] 禁止文字を置換: before={repr(original)},after{repr(sanitized)}") # 成功したときのログ
+        
+        else:
+            self.logger.info_log(f"[sanitize_title] 変更無し: {repr(original)}") # 失敗したときのログ
+            
+        return sanitized
+    
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def extract_room_info_from_row(self,row:WebElement) -> WebElement:
+        """一つの部屋行から物件名・専有面積・階を取り出して返す"""
+        try:
+            tds = row.find_elements(By.TAG_NAME,"td") # extract_room_info_from_rowメソッドの引数で渡された、webelmentのfind_elementsメソッドを呼び出して、ByクラスのTAG_NAMEメソッドにて”td”タグを探した結果を、変数tdsへ代入する。
+            
+            if len(tds) < 6: # 変数tdsに格納されたtdタグの個数が6個未満の場合、以下の処理を行う。
+                self.logger.error_log(f"extract_room_info_from_row 想定列数未満のためスキップ:len(tds)={len(tds)}") # 失敗したときのログ
+                return None
+            
+            prop_span = row.find_element(By.XPATH,"ancestor::table[contains(@class,'bkn_list_block')][1]""//li[contains(@class,'clsListBkn')]/span") # 変数rowに返されたwebelmentメソッドの引数で、XPATHで物件ブロックの文字列を探して、その結果を変数prop_spanへ代入する。
+            property_name = self.clean_text(prop_span.text) # clean_textメソッドで、変数prop_span内の指定文字列を半角スペースへ変換して、変数property_nameへ代入する。
+            
+            area_text = self.clean_text(tds[4].text) # 変数tbsに格納されている5列目のリストの文字列である専有面積の文字列の余分な改行や空白を整理して、変数area_textに代入する。
+            floor_raw = tds[5].text.splitlines()[0] # 変数tbsに格納されている6列目のリスト文字列である階の文字列を、改行ごとに分割するメソッドであるsplitlinesで、2分割して、1行目だけを取り出して、変数floor_rawに代入する。
+            floor_text = self.clean_text(floor_raw) # 変数floor_rawに格納されている文字列の余分な改行や空白をclean_textメソッドで整理して、変数floor_textに代入する。
+            
+            self.logger.info_log(f"[extract_room_info_from_row] 取得成功: "f"物件名={property_name}, 専有面積={area_text}, 階={floor_text}") #　成功したときのログ 
+            
+            return property_name,area_text,floor_text
+        
+        except Exception as e:
+            self.logger.error_log(f"[extract_room_info_from_row] 取得失敗: {e}") # 失敗したときのログ
+            return None
+        
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def make_title(self,property_name:str, area:str, floor:str) -> str:
+        """物件名・専有面積・階から辞書用タイトルを作る"""
+        
+        title = f"物件名{property_name}_専有面積{area}_階{floor}" # extract_room_info_from_rowメソッドで取り出した物件名、専有面積、階をつなげて変数titleへ代入する。
+        title = self.sanitize_title(title) # ファイル名に使用できない文字列を変換して、再度変数titleへ代入する。
+        return title
+    
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def create_property_dict(self,driver) -> Dict[str,str]:
+        """一覧テーブルからタイトル（物件名_専有面積_階）ｰ>詳細URLの辞書を作成して返す"""
+        d: Dict[str,str] = {} # 変数dへからの辞書を代入する
+        detail_links = self.find_elements(driver,By.XPATH,"//a[contains(@onclick,'window.open')][.//img[@alt='詳細']]") # 一覧ページにある全ての詳細のボタンがある周辺の要素を取り出して、変数dtail_linksへ代入する。
+    
+    
+        for a in detail_links: # 変数dtail_linksに格納された、一覧表示から取得した詳細ボタンの情報を繰り返し処理をする
+            try:
+                oc = self.get_onclick(a) # 詳細ボタンの要素を取り出す。
+                first = self.parse_window_open_first_arg(oc) # onclick属性のwindow.openの第一引数、つまり物件URLを抽出して返す
+                if not first: # 物件URLがない場合の処理
+                    self.logger.error_log("[create_property_dict] onclick解析に失敗。スキップ") # 失敗したときのログ
+                    continue
+                
+                rel = self.simplify_detail_url(first)or first # 詳細URLを簡略化して返す、またはsimplify_detail_urlメソッドが空の場合は、変数firstを変数relに代入する。
+                url = self.to_absolute_url(rel,driver) # 相対URLを絶対URLに変換して返して、変数urlに代入する
+                if not url: # 絶対URLがない場合の処理
+                    self.logger.error_log(f"[create_property_dict] URL生成に失敗。スキップ") # 失敗したときのログ
+                    continue
+                
+                row = a.find_element(By.XPATH,"./ancestor::tr[contains(@class,'clsTrData')][1]") # 詳細ボタン（aタグ）から見て、一番近い「tr.clsTrData」の行を、すなわち物件名・専有面積・階の情報の文字列を取得する。
+                info = self.extract_room_info_from_row(row) # 変数rowに代入された一つの部屋行から物件名・専有面積・階を取り出して返す
+                if not info: # 物件名・専有面積・階の情報がない場合の処理
+                    continue 
+                property_name,area_text,floor_text = info # 先の変数へ、変数infoに格納されている、物件名・専有面積・階の数値を代入する。
+            
+                title = self.make_title(property_name,area_text,floor_text) # 物件名・専有面積・階から辞書用タイトルを作る
+            
+            #辞書のタイトルが重なった場合の処理 
+                original = title 
+                suffix = 2 # 変数suffixへ2を代入する
+                while title in d: # 変数titleの値の中に、変数dの値が含まれていた場合、すなわち辞書タイトルが被っていた場合の繰り返し処理
+                    title = f"{original}_{suffix}" # 辞書タイトルのあとに数値を追加
+                    suffix += 1 # 被るたびに1カウントして増やしていく
+                
+                d[title] = url # titleを辞書のキー、urlを辞書の値として、変数dへ辞書データを登録する。
+            
+            except Exception as e:
+                self.logger.error_log(f"[create_propery_dict] 行処理中にエラー: {e}") # 失敗したときのログ
+                continue
+        
+        return d 
+#**********************************************************************************

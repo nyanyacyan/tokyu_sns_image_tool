@@ -96,23 +96,10 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         # iframeを探す
             self.autologin.swich_to_iframe(self.chrome_driver,By.ID,"ifrMain") # Auto_Login_Flowクラスのswich_to_iframeメソッドを呼び出して、id=ifrMainという属性を探して、iframe内へ移動する
         
-        # 詳細ボタンを探す
-            a_elems = self.autologin.find_elements(self.chrome_driver,By.XPATH,"//a[contains(@onclick, 'window.open')][.//img[@alt='詳細']]") # Auto_Login_Flowクラスのfind_elementsメソッドを呼び出して、xpathで詳細ボタンの要素を探す
-    
-            for a in a_elems:
+        # 辞書作成
+            property_dict = self.autologin.create_property_dict(self.chrome_driver)
         
-        # Onclickを探す
-                oc = self.autologin.get_onclick(a)
-                
-
-        # URLを抽出する
-                first = self.autologin.parse_window_open_first_arg(oc)
-                
-        # URLを結合する
-                rel = self.autologin.simplify_detail_url(first or "")
-                
-        # 相対URLを絶対URLに変換
-                self.autologin.to_absolute_url(rel or "",self.chrome_driver)
+            return property_dict
                 
     # ------------------------------------------------------------------------------
 
