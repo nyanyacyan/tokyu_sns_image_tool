@@ -15,6 +15,7 @@ import json,time,random,re,pickle # 「json」、「time」、「random」、「
 
 # 自作モジュールimport
 from flow.base.logger import Logger  # logger.pyからLoggerクラスを取り込む
+from flow.base.path import get_pickle_file_dir,get_today_pickle_path
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -390,13 +391,7 @@ class Auto_Login_Flow:
                 property_name,area_text,floor_text = info # 先の変数へ、変数infoに格納されている、物件名・専有面積・階の数値を代入する。
             
                 title = self.make_title(property_name,area_text,floor_text) # 物件名・専有面積・階から辞書用タイトルを作る
-            
-            #辞書のタイトルが重なった場合の処理 
-                original = title 
-                suffix = 2 # 変数suffixへ2を代入する
-                while title in d: # 変数titleの値の中に、変数dの値が含まれていた場合、すなわち辞書タイトルが被っていた場合の繰り返し処理
-                    title = f"{original}_{suffix}" # 辞書タイトルのあとに数値を追加
-                    suffix += 1 # 被るたびに1カウントして増やしていく
+                title = self.ensure_unique_title(d,title) #辞書のタイトルが重ならないようにする 
                 
                 d[title] = url # titleを辞書のキー、urlを辞書の値として、変数dへ辞書データを登録する。
             
@@ -405,4 +400,106 @@ class Auto_Login_Flow:
                 continue
         
         return d 
+
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def ensure_unique_title(self, d:Dict[str,str], title:str) -> str:
+        """辞書の中でtitleが重複しないように、末尾に_2、_3....をつけて返す"""
+        
+        original = title 
+        suffix = 2 # 変数suffixへ2を代入する
+        while title in d: # 変数titleの値の中に、変数dの値が含まれていた場合、すなわち辞書タイトルが被っていた場合の繰り返し処理
+            title = f"{original}_{suffix}" # 辞書タイトルのあとに数値を追加
+            suffix += 1 # 被るたびに1カウントして増やしていく
+            
+        return title
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def save_titles_pickle(self, data: dict | list): # 「｜」はorを意味する
+        """タイトル辞書（またはリスト）をpickleとして保存する"""
+        
+        try:
+            pkl_path = get_today_pickle_path() # pathファイルの、今日の日付を使ったpickleファイルのパスを返すメソッドを呼び出し
+            
+            with open(pkl_path, "wb") as f: # ファイル操作の組み込み関数である、open関数の第一引数に指定のファイルの値が格納されている「pkl_path」を渡し、第二引数へ操作モードを書き込み用にバイナリモードでオープンする「wb」を渡して、open（）が返すファイルオブジェクトをfという変数名とする
+                pickle.dump(data, f) # pickleモジュールの、ファイルにデータを書き込むdump関数の第一引数へ、引数dataで受け取った辞書データ、またはリストデータを第二引数で指定したpickleファイルへ書き込みを行う
+                
+                self.logger.info_log(f"[save_titles_pickle] 保存成功: {pkl_path}") # pickleファイルへの保存が成功したときのログ
+                
+                self.cleanup_old_pickles() # 古いpklファイルを削除する
+                
+                return pkl_path
+            
+        except Exception as e:
+            self.logger.error_log(f"[save_titles_pickle] 保存失敗: {e}") # pickleファイルへの保存に失敗したときのログ
+            return None
+
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def get_latest_pickle_file(self):
+        """最新のpklを探す"""
+        
+        pdir = get_pickle_file_dir() # ログを保存するディレクトリのパスを返して、ディレクトリがなければ自動作成する関数を呼び出し 
+        files = list(pdir.glob("*.pkl")) # list関数で、ログを保存するパスが格納されている、変数pdir内で、「.pkl」のファイルを取得して、リスト化する
+        
+        if not files: # pklファイルが無い場合の処理
+            self.logger.info_log("[get_latest_pickle_file] pickleなし→None返す") # pklファイルがない場合のログ
+            return None
+        
+        latest = max(files, key=lambda p:p.stem) # リスト内の最大値を求めるmax関数の第一引数へ、pklのファイルパスが格納されている変数filesを渡し、第二引数へラムダ演算子で定義した、p.stemで拡張子を除いたファイル名、つまり日付の数値である引数pを、変数keyに代入して渡し、最新の日付を求める
+        self.logger.info_log(f"[get_latest_pickle_file] 最新: {latest}") # 最新の日付pklファイルが有った場合のログ
+        return latest
+    
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def load_latest_titles_or_empty(self):
+        """最新のpickleを読み込む"""
+        
+        path = self.get_latest_pickle_file() # 最新のpklファイルを探すメソッドを呼び出す
+        
+        if not path: # 最新のpklファイルではない場合の処理
+            return{} # 空の辞書を返す
+        
+        try:
+            with open(path, "rb") as f: # ファイル操作の組み込み関数である、open関数の第一引数に指定のファイルの値が格納されている「path」を渡し、第二引数へ操作モードを読み込み用にバイナリモードでオープンする「rb」を渡して、open（）が返すファイルオブジェクトをfという変数名とする
+                data = pickle.load(f) # pickleモジュールのファイルの読み込みを行うload関数で、第一引数へ最新のpklファイルが格納されている変数fを渡す
+                
+            self.logger.info_log(f"[load_latest_titles_or_empty] 読み込み成功: {path}") # 最新のpklファイル読み込み成功時のログ
+            return data
+        
+        except Exception as e: # ファイル破損などのエラーでも止まらず、からの辞書を返して処理を続行させる
+            self.logger.error_log(f"[load_latest_titles_or_empty] 読み込み失敗: {e}") # 最新のpklファイル読み込み失敗時のログ
+            return {}
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def cleanup_old_pickles(self):
+        """古いpickleを削除する"""
+        pdir = get_pickle_file_dir() # ログを保存するディレクトリのパスを返して、ディレクトリがなければ自動作成する関数を呼び出し
+        files = sorted(pdir.glob("*.pkl"), key=lambda p: p.stem) # sorted関数にてpklファイルを日付順の昇順にリストを並べ替えて、変数filesに代入
+        
+        if len(files) <= 1: # len関数で変数files内のリスト数を数えて、1以下の場合の処理
+            self.logger.info_log(f"[cleanup_old_pickles] 削除対象なし") # 古いpklファイルが無い場合のログ
+            return
+        
+        old_files = files[:-1] # 変数files内の日付の古いファイルパス名の順番から、最新の一つ手前までのファイルパス名を、変数old_fileへ代入
+        
+        for f in old_files: # 変数old_file内のファイルパスを繰り返し、変数fへ代入して処理
+            try:
+                f.unlink() # osモジュールのファイルパスを削除する関数を使用
+                self.logger.info_log(f"[cleanup_old_pickles] 削除: {f}") # ファイル削除成功時のログ
+            except Exception as e:
+                self.logger.error_log(f"[clean_old_pickles] 削除失敗: {e}") # ファイル削除失敗時のログ
+                
+        
+# ------------------------------------------------------------------------------
+    # 関数定義
+    
+# ------------------------------------------------------------------------------
+    # 関数定義
+        
+# ------------------------------------------------------------------------------
+    # 関数定義
+    
+# ------------------------------------------------------------------------------
+    # 関数定義           
 #**********************************************************************************

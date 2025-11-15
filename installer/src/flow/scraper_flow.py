@@ -33,6 +33,8 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
     def ensure_logged_in(self):
 
         self.autologin.wait_random() # ランダム時間で待機
+        prev_titles = self.autologin.load_latest_titles_or_empty()
+        self.autologin.logger.info_log(f"[ensure_logged_in] 前回タイトル件数: {len(prev_titles)}")
         
         # ログイン状態チェック
         if self.autologin.is_logged_in(self.chrome_driver): # is_logged_inメソッドを呼び出して、ログイン状態をチェック
@@ -98,8 +100,9 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         
         # 辞書作成
             property_dict = self.autologin.create_property_dict(self.chrome_driver)
-        
-            return property_dict
+                    
+        # pickleファイル保存
+            self.autologin.save_titles_pickle(property_dict)
                 
     # ------------------------------------------------------------------------------
 
