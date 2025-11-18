@@ -100,7 +100,18 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         
         # 辞書作成
             property_dict = self.autologin.create_property_dict(self.chrome_driver)
-                    
+            
+        # 前回までのpickleファイルを読み込む
+            prev_data = self.autologin.load_latest_titles_or_empty()
+            
+        # 今回取得した新しい情報を取り出す
+            new_property_dict = self.autologin.filter_new_titles(property_dict,prev_data)
+            
+        # 新しい情報がない場合に終了する処理
+            if not new_property_dict:
+                self.autologin.logger.info_log(f"[ensure_logged_in] 新規タイトルが0件のため、詳細ページ処理をスキップします")
+                return
+            
         # pickleファイル保存
             self.autologin.save_titles_pickle(property_dict)
                 

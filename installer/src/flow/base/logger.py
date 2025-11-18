@@ -18,7 +18,7 @@ class Logger:
         # ログの出力設定（ファイル名、ログレベル、フォーマットなど）
         logging.basicConfig(
             filename=file_path,                                # ログの出力ファイル
-            level=logging.DEBUG,                               # DEBUGレベル以上をすべて記録
+            level=logging.INFO,                                # INFOレベル以上をすべて記録
             format='%(asctime)s - %(levelname)s - %(message)s' # 日時・レベル・内容
         )
 

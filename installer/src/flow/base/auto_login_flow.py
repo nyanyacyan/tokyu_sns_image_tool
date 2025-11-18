@@ -415,7 +415,7 @@ class Auto_Login_Flow:
         return title
 # ------------------------------------------------------------------------------
     # 関数定義
-    def save_titles_pickle(self, data: dict | list): # 「｜」はorを意味する
+    def save_titles_pickle(self, data: dict | list) -> dict | list: # 「｜」はorを意味する
         """タイトル辞書（またはリスト）をpickleとして保存する"""
         
         try:
@@ -436,7 +436,7 @@ class Auto_Login_Flow:
 
 # ------------------------------------------------------------------------------
     # 関数定義
-    def get_latest_pickle_file(self):
+    def get_latest_pickle_file(self) -> Optional[Path]:
         """最新のpklを探す"""
         
         pdir = get_pickle_file_dir() # ログを保存するディレクトリのパスを返して、ディレクトリがなければ自動作成する関数を呼び出し 
@@ -452,7 +452,7 @@ class Auto_Login_Flow:
     
 # ------------------------------------------------------------------------------
     # 関数定義
-    def load_latest_titles_or_empty(self):
+    def load_latest_titles_or_empty(self) -> dict | list:
         """最新のpickleを読み込む"""
         
         path = self.get_latest_pickle_file() # 最新のpklファイルを探すメソッドを呼び出す
@@ -472,7 +472,7 @@ class Auto_Login_Flow:
             return {}
 # ------------------------------------------------------------------------------
     # 関数定義
-    def cleanup_old_pickles(self):
+    def cleanup_old_pickles(self) -> None:
         """古いpickleを削除する"""
         pdir = get_pickle_file_dir() # ログを保存するディレクトリのパスを返して、ディレクトリがなければ自動作成する関数を呼び出し
         files = sorted(pdir.glob("*.pkl"), key=lambda p: p.stem) # sorted関数にてpklファイルを日付順の昇順にリストを並べ替えて、変数filesに代入
@@ -493,7 +493,34 @@ class Auto_Login_Flow:
         
 # ------------------------------------------------------------------------------
     # 関数定義
-    
+    def filter_new_titles(self,current_dict: dict[str,str], prev_data: dict | list) -> dict[str,str]:
+        """前回までに保存されていたタイトルを除外して、今回「新たに見つかったタイトル」だけの辞書を返す"""
+        
+        if isinstance(prev_data,dict): # 指定した辞書データが格納されたprev_dataが、指定したdict型である場合、Trueを返したときの処理
+            prev_titles = set(prev_data.keys()) # 組み込み関数のsetメソッドを呼び出して、第一引数で渡された辞書データが格納されてるprev_dataの、キーを１つずつ返し、それらを並び順の無い集合体に変換し、変数prev_titlesへ代入する
+            
+        elif isinstance(prev_data,list): # 指定した辞書データが格納されたprev_dataが、指定したlist型である場合、Trueを返したときの処理
+            prev_titles = set(prev_data) # 組み込み関数のsetメソッドを呼び出して、引数で渡されたリストデータが格納されているprev_dataを、並び順のない集合体に変換し、変数prev_titlesへ代入する
+            
+        else:
+            prev_titles = set() # それ以外は、空のセットを変数prev_titlesへ代入する
+            
+        total_now = len(current_dict) # 組み込み関数であるリストの要素の個数を調べるlen関数を使用して、引数のcurrent_dictに格納されている辞書データの要素を数えて、変数total_nowへ代入する
+        new_dict: dict[str,str] = {} # 変数new_dictへ空の辞書データを代入する
+            
+        for title,url in current_dict.items(): # 変数current_dictに格納されているキーと値のペアを、タプルで1つずつ返し、変数titleとurlへそれぞれ繰り返し代入し、次の処理を行う
+            if title in prev_titles: # 変数titleに格納されているキーが、変数prev_titlesに格納されている集合体の中に含まれている場合、次の処理を行う
+                continue
+            
+            new_dict[title] = url # 変数urlに含まれている辞書データの値を、辞書型の変数new_dictに格納されている、キーである変数titleを指定して、値を変更する
+            
+        
+        already_count = total_now - len(new_dict) # 引数current_dictに格納されている辞書データの要素数が格納されている、変数total_nowから、辞書型である変数new_dictに格納されている要素数を引いた値を、変数already_countへ代入する
+        new_count = len(new_dict) # 辞書型である変数new_dictに格納されている要素数を、変数new_countへ代入する
+        
+        self.logger.info_log(f"[filter_new_titles] 今回取得: {total_now}件 /" f"既存: {already_count}件 / 新規:{new_count}件") # ログ出力
+        
+        return new_dict
 # ------------------------------------------------------------------------------
     # 関数定義
         
