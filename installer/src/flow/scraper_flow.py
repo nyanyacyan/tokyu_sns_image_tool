@@ -2,13 +2,14 @@
 # installer/src/flow/scraper_flow.py
 
 # 標準モジュールimport
-from selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラスfrom selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラス
+from selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラス
 from selenium.webdriver.support.ui import WebDriverWait # 「selenium.webdriver.support.ui」というモジュールから取り込んだ「WebDriberWait」という待機オブジェクト作るクラス
 from selenium.webdriver.support import expected_conditions as EC # 「selenium.webdriver.support」というモジュールから取り込んだ「expected_conditions」という「どんな条件を満たすまで待つか」という待機オブジェクトを作るモジュールを略して「EC」としている
 from selenium.common.exceptions import TimeoutException # 「selenium.common.exceptions」というモジュールから、「TimeoutException」という操作や処理が設定時間内に完了されなかった場合に通知するクラス
 # 自作モジュールimport
 from flow.base.chrome import Chrome # chrome.pyからChromeクラスを取り込む
 from flow.base.auto_login_flow import Auto_Login_Flow # auto_login_flow.pyからAuto_Login_Flowクラスを取り込む
+from flow.base.logger import Logger  # logger.pyからLoggerクラスを取り込む
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -23,10 +24,10 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
     def __init__(self):
     
         # 初期設定
-        self.autologin = Auto_Login_Flow()
+        self.autologin = Auto_Login_Flow() # Auto_Login_Flowクラスをインスタンス化
         self.user_id, self.user_pass, self.login_url, self.loggedin_url, self.logged_in_css = self.autologin.load_config() 
         self.chrome_driver = Chrome().open_site(self.login_url)
-        
+        self.logger = Logger()
     # ------------------------------------------------------------------------------
     
     # 関数定義
@@ -110,11 +111,21 @@ class LoginAutomator: # 「ログインオートメーター」というログ�
         # 新しい情報がない場合に終了する処理
             if not new_property_dict:
                 self.autologin.logger.info_log(f"[ensure_logged_in] 新規タイトルが0件のため、詳細ページ処理をスキップします")
+                
+                items = list(property_dict.items())
+                if not items:
+                    self.autologin.logger.info_log("[ensure_logged_in] 物件自体が0件のため終了します") 
+                    
                 return
+        
+        # 詳細ページから路線名、駅名、徒歩情報等の詳細情報を取得
+            detailed_property_dict = self.autologin.scrape_detail_pages_line_station_walk(self.chrome_driver,new_property_dict)
             
         # pickleファイル保存
-            self.autologin.save_titles_pickle(property_dict)
-                
+            self.autologin.save_titles_pickle(detailed_property_dict)    
+            
+        # デバッグ用ログ
+            self.logger.debug_log(f"[scrape_property] 保存対象property_dict:{detailed_property_dict}")
     # ------------------------------------------------------------------------------
 
     # 関数定義

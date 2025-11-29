@@ -2,7 +2,7 @@
 # auto_login_flow.py
 
 # 標準モジュールimport
-from selenium.common.exceptions import TimeoutException # 「selenium.common.exceptions」というモジュールから、「TimeoutException」という操作や処理が設定時間内に完了されなかった場合に通知するクラス
+from selenium.common.exceptions import TimeoutException, NoSuchElementException # 「selenium.common.exceptions」というモジュールから、「TimeoutException」という操作や処理が設定時間内に完了されなかった場合に通知するクラス
 from selenium.webdriver.common.by import By # 「selenium.webdriver.common.by」というモジュールから取り込んだ「By」という、どの方法でhtmlの要素を探すかを指定するクラス
 from selenium.webdriver.support.ui import WebDriverWait # 「selenium.webdriver.support.ui」というモジュールから取り込んだ「WebDriberWait」という待機オブジェクト作るクラス
 from selenium.webdriver.support import expected_conditions as EC # 「selenium.webdriver.support」というモジュールから取り込んだ「expected_conditions」という「どんな条件を満たすまで待つか」という待機オブジェクトを作るモジュールを略して「EC」としている
@@ -11,11 +11,13 @@ from selenium.webdriver.remote.webelement import WebElement # 「slenium.webdriv
 from urllib.parse import urljoin,quote,urlparse # 「urllib.parse」というURLを扱うモジュールから、「urljoin」と「quote」という関数を取り込む
 from contextlib import contextmanager # 「contextlib」という標準ライブラリのモジュールから、「contextmanager」というデコレーター関数を取り込む
 from typing import Optional,Iterable,List,Dict # 「typing」という標準ライブラリのモジュールから、「Optional」、「Iterable」、「List」、「Dict」という型ヒントを取り込む
-import json,time,random,re,pickle # 「json」、「time」、「random」、「re」、「pickle」という標準ライブラリのモジュールを取り込む
+from datetime import datetime
+import json, time, random, re, pickle, base64,os #「json」、「time」、「random」、「re」、「pickle」、「base64」、「os」という標準ライブラリのモジュールを取り込む
 
 # 自作モジュールimport
 from flow.base.logger import Logger  # logger.pyからLoggerクラスを取り込む
 from flow.base.path import get_pickle_file_dir,get_today_pickle_path
+from .chrome import Chrome # chrome.pyからChromeクラスを取り込む
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
@@ -192,7 +194,7 @@ class Auto_Login_Flow:
     # 関数定義
     def get_detail_links(self,driver) -> list[WebElement]:
         """一覧から『詳細』ボタンのa要素を全て取得"""
-        return self.find_element(driver,By.XPATH,"//a[contains(@onclick,'window.open')][.//img[@alt='詳細']]")
+        return self.find_elements(driver,By.XPATH,"//a[contains(@onclick,'window.open')][.//img[@alt='詳細']]")
 
 
 # ------------------------------------------------------------------
@@ -294,8 +296,9 @@ class Auto_Login_Flow:
             hid_enc = quote(hid_val,safe="~()*!.'") # 取得した文字列をURLとして使えるように、変換するメソッドである「quote」を用いて、第一引数へ変換する文字列をしていして、第二引数へエンコードしない文字列をしていし、変数hid_encに代入する
             result = prefix + hid_enc + suffix # 変数prefix、hid_enc、suffixをそれぞれ足して、変数resultへ代入する
             self.logger.info_log(f"[simplyfy_detail_url] 特殊パターンで整形: {result}") # 文字列の結合に成功したときのログ
-        
-        return result
+            return result
+        self.logger.info_log(f"[simplyfy_detail_url] パターンに該当せず、そのまま返します: {expr}")
+        return expr
 
         
 # ------------------------------------------------------------------------------
@@ -320,7 +323,7 @@ class Auto_Login_Flow:
         sanitized = re.sub(r'[\\/:*?"<>|]',"_",title) # 正規表現reモジュールのsubメソッドを使用して、第一引数で指定した空白文字列を探して、第二引数で指定した文字列を、第三引数で指定した文字列内を検索して置き換えて、変数sanitizeへ代入する。
         
         if original != sanitized: # 変数originalと変数sanitizedが一致しない場合、以下の処理を行う。
-            self.logger.info_log(f"[sanitize_title] 禁止文字を置換: before={repr(original)},after{repr(sanitized)}") # 成功したときのログ
+            self.logger.info_log(f"[sanitize_title] 禁止文字を置換: before={repr(original)},after={repr(sanitized)}") # 成功したときのログ
         
         else:
             self.logger.info_log(f"[sanitize_title] 変更無し: {repr(original)}") # 失敗したときのログ
@@ -523,10 +526,590 @@ class Auto_Login_Flow:
         return new_dict
 # ------------------------------------------------------------------------------
     # 関数定義
+    def make_empty_property_dict(self,title: str) -> dict:
+        """1件の物件情報を入れるための「空の辞書テンプレ」を作って返す"""
         
+        d = {
+            "title": title,
+            "line": "",
+            "station": "",
+            "walk": "",
+            
+            "layout": "",
+            "area": "",
+            "price": 0,
+            "maintenance_fee": 0,
+            "deposit": 0.0,
+            "key_money": 0.0,
+            
+            "features": [],
+            "preferences": [],
+            
+            "exterior_image": "",
+            "layout_image_path": "",
+            
+            "interior_1": "",
+            "interior_2": "",
+            "interior_3": "",
+            "interior_4": "",
+            "interior_5": "",
+            
+            "comment_b": "",
+            "comment_c": "",
+            "comment_d": "",
+            
+            "saved_files": [],
+        } 
+        
+        self.logger.info_log(f"[make_empty_property_dict] テンプレ作成: title={title}")
+            
+        return d
 # ------------------------------------------------------------------------------
     # 関数定義
-    
+    def add_line_station_walk(self,driver, data: dict) -> dict:
+        """詳細ページの「交通/所在地」セルから、line（路線名）、station（駅名）、walk（徒歩情報）を取得して、引数dataの辞書に追加して返す"""
+        
+        try:
+            cell = driver.find_element(
+                By.XPATH,
+                (
+                    "//table[@id='detail_pickup']"
+                    "//td[contains(@class,'tbl_tit_detail')"
+                    "and contains(.,'交通') and contains(.,'所在地')]"
+                    "/parent::tr"
+                    "/following-sibling::tr[1]"
+                    "/td[1]"                           
+                )
+            )
+            
+        except NoSuchElementException:
+            self.logger.error_log(f"[add_line_station_walk] 交通/所在地セルが見つかりません")
+            data["line"] = ""
+            data["station"] = ""
+            data["walk"] = ""
+            return data
+        
+        except Exception as e:
+            self.logger.error_log(f"[add_line_station_walk] 要素取得中にエラー:{e}")
+            data["line"] = ""
+            data["station"] = ""
+            data["walk"] = ""
+            return data
+        
+        raw_text = cell.text.strip()
+        if not raw_text:
+            self.logger.info_log("[add_line_station_walk] 交通/所在地セルが空のため、空文字で保存")
+            data["line"] = ""
+            data["station"] = ""
+            data["walk"] = ""
+            return data
+            
+        first_line = raw_text.splitlines()[0]
+        first_line = self.clean_text(first_line)
+        
+        if "／" in first_line:
+            left,walk = first_line.split("／", 1)
+            walk = self.clean_text(walk)
+        else:
+            left = first_line
+            walk = ""
+            
+        tokens = left.split()
+        if len(tokens) >= 2:
+            station = tokens[-1]
+            line_name = " ".join(tokens[:-1])
+        else:
+            line_name = left
+            station = ""
+            
+        if station and not station.endswith("駅"):
+            station = station + "駅"
+            
+        data["line"] = line_name
+        data["station"] = station
+        data["walk"] = walk
+        
+        self.logger.info_log(f"[add_line_station_walk] 取得成功: line={line_name},station={station},walk={walk}")
+        
+        return data
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def scrape_detail_pages_line_station_walk(self,driver,title_url_dict: Dict[str,str]) -> Dict[str,dict]:
+        """タイトル　->　詳細URLの辞書を受け取り、各詳細ページを新しいタブで開いてline/station/walk/price/maintenance_fee/deposit/key_moneyを埋めたproperty_dictを返す"""
+        
+        results: Dict[str,dict] = {}
+        original_handle = driver.current_window_handle
+        
+        for title, url in title_url_dict.items():
+            self.logger.info_log(f"[scrape_detail_pages_line_station_walk] 詳細ページ処理開始: title={title},url={url}")
+            
+            prop = self.make_empty_property_dict(title)
+        
+            try:
+                self.open_new_tab(driver,url)
+                self.wait_random()
+            
+                self.switch_to_default(driver)
+            
+                prop = self.add_line_station_walk(driver,prop)
+                prop = self.add_price_and_maintenance_fee(driver,prop)
+                prop = self.add_deposit_and_key_money(driver,prop)
+                prop = self.add_layout_and_area(driver,prop)
+                prop = self.add_features_and_preferences(driver,prop)
+                prop = self.add_exterior_and_layout_images(driver,prop)
+                prop = self.add_interior_images_and_comments(driver,prop)
+            
+                self.logger.info_log(
+                    f"[scrape_detail_pages_line_station_walk] 取得結果: "
+                    f"line={prop['line']}, station={prop['station']},walk={prop['walk']}, " 
+                    f"price={prop['price']}, maintenance_fee={prop['maintenance_fee']}, "
+                    f"deposit={prop['deposit']}, key_money={prop['key_money']}, "
+                    f"layout={prop['layout']}, area={prop['area']}, "
+                    f"features={prop['features']}, preferences={prop['preferences']}"
+                    f"exterior_image={prop['exterior_image']}, "
+                    f"layout_image_path={prop['layout_image_path']}, "
+                    
+                )
+
+                results[title] = prop
+        
+            except Exception as e:
+                self.logger.error_log(f"[scrape_detail_pages_line_station_walk] "f"タイトル={title} の処理中にエラー: {e}")
+            
+            finally:
+            
+                try:
+                    driver.close()
+                except Exception as e:
+                    pass
+            
+                try:
+                    driver.switch_to.window(original_handle)
+            
+                except Exception:
+                    pass
+            
+        return results
+                
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def extract_int_from_text(self,text: str) -> int:
+        """文字列から数字だけ抜き出してintに変換（無ければ0）"""
+        
+        if text is None:
+            return 0
+        
+        digits = re.sub(r"[^\d]","",text)
+        
+        if digits:
+            val = int(digits)
+            self.logger.info_log(f"[extract_int_from_text] 数値抽出成功: text={repr(text)}, val={val}")
+            return val
+        
+        else:
+            self.logger.info_log(f"[extract_int_from_text] 数値が見つからず0として扱います: text={repr(text)}")
+            return 0          
+# ------------------------------------------------------------------------------
+    # 関数定義    
+    def add_price_and_maintenance_fee(self,driver,data: dict) -> dict:
+        """詳細ページの「賃料/管理費等」セルから、price（賃料）とmaintenance（管理費）を取得してdataに追加して返す"""
+        try:
+            cell = driver.find_element(
+                By.XPATH,
+                (
+                    "//table[@id='detail_pickup']"
+                    "//span[@id='detail_price']/parent::td"
+                 )
+            ) 
+        except Exception as e:
+            self.logger.error_log(f"[add_price_and_maintenance_fee] 賃料セルが見つかりません: {e}")
+            data["price"] = 0
+            data["maintenance_fee"] = 0
+            return data
+            
+        raw_text = cell.text.strip()
+        if not raw_text:
+            self.logger.info_log(f"[add_price_and_maintenance_fee] 賃料セルが空のため0で保存します")
+            data["price"] = 0
+            data["maintenance_fee"] = 0
+            return data
+        
+        lines = raw_text.splitlines()
+        price_line = lines[0] if len(lines) >= 1 else ""
+        maint_line = lines[1] if len(lines) >= 2 else ""
+        
+        price_val = self.extract_int_from_text(price_line)
+        maint_val = self.extract_int_from_text(maint_line)
+        
+        data["price"] = price_val
+        data["maintenance_fee"] = maint_val
+        
+        self.logger.info_log(f"[add_price_and_maintenance_fee] 取得成功: price={price_val}, maintenance_fee={maint_val}")
+        return data
+         
+# ------------------------------------------------------------------------------
+    # 関数定義 
+    def extract_float_months(self,text: str) -> float:
+        """1ヶ月、1.5ヶ月、‐、なし、などの文字列からfloat値（月数）を抽出して返す。見つからなければ0.0とする。"""
+        
+        t = text.strip()
+        if not t or t in("-","ー"):
+            self.logger.info_log(f"[extract_float_months] '-'判定のため0.0扱い: text={repr(text)}")
+            return 0.0
+        
+        m = re.search(r"(\d+(?:\.\d+)?)", t)
+        if not m:
+            self.logger.info_log(f"[extract_float_months] 数値が見つからず0.0扱い: text={repr(text)}")
+            return 0.0
+        
+        val = float(m.group(1))
+        self.logger.info_log(f"[extract_float_months] 数値抽出成功: text={repr(text)}, val={val}")
+        return val
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def add_deposit_and_key_money(self,driver,data: dict) -> dict:
+        """詳細ページの「敷金（保証金）/礼金」セルから、deposit（敷金）とkey_money（礼金）を取得してdataに追加して返す"""
+        
+        try:
+            cell = driver.find_element(
+                By.XPATH,
+                (
+                    "//table[@id='detail_pickup']"
+                    "//td[contains(@class,'tbl_tit_detail')and contains(.,'敷金')]"
+                    "/parent::tr"
+                    "/following-sibling::tr[1]"
+                    "/td[3]"
+                )
+            )
+        
+        except Exception as e:
+            self.logger.error_log(f"[add_deposit_and_key_money] 敷金/礼金セルが見つかりません: {e}")
+            data["deposit"] = 0.0
+            data["key_money"] = 0.0
+            return data
+        
+        raw_text = cell.text.strip()
+        if not raw_text:
+            self.logger.info_log(f"[add_deposit_and_key_money] 敷金/礼金セルが空のため0.0で保存します")
+            data["deposit"] = 0.0
+            data["key_money"] = 0.0
+            return data
+        
+        lines = raw_text.splitlines()
+        deposit_line = self.clean_text(lines[0]) if len(lines) >= 1 else ""
+        key_line = self.clean_text(lines[1]) if len(lines) >= 2 else ""
+        
+        deposit_val = self.extract_float_months(deposit_line)
+        key_val = self.extract_float_months(key_line)
+        
+        data["deposit"] = deposit_val
+        data["key_money"] = key_val
+        
+        self.logger.info_log(f"[add_deposit_and_key_money] 取得成功: deposit={deposit_val},key_money={key_val}")
+        return data          
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def add_layout_and_area(self,driver, data: dict) -> dict:
+        """詳細ページの「間取/専有面積」セルからlayout（間取り）とarea（専有面積）を取得してdataに追加して返す"""
+        try:
+            cell = driver.find_element(
+                By.XPATH,
+                (
+                    "//table[@id='detail_pickup']"
+                    "//td[contains(@class,'tbl_tit_detail') and contains(.,'間取')]"
+                    "/parent::tr"
+                    "/following-sibling::tr[1]"
+                    "/td[4]"
+                )
+            )
+        
+        except Exception as e:
+            self.logger.error_log(f"[add_layout_and_area] 間取/専有面積セルが見つかりません: {e}")
+            data["layout"] = ""
+            data["area"] = ""
+            return data
+            
+        raw_text = cell.text.strip()
+        if not raw_text:
+            self.logger.info_log(f"[add_layout_and_area] 間取/専有面積セルが空のため空文字で保存します")
+            data["layout"] = ""
+            data["area"] = ""
+            return data
+            
+        lines = raw_text.splitlines()
+        layout_line = self.clean_text(lines[0]) if len(lines) >= 1 else ""
+        area_line   = self.clean_text(lines[1]) if len(lines) >= 2 else ""
+        
+        data["layout"] = layout_line
+        data["area"]   = area_line
+        
+        self.logger.info_log(f"[add_layout_and_area] 取得成功: layout={layout_line}, area={area_line}")
+        return data       
 # ------------------------------------------------------------------------------
     # 関数定義           
+    def extract_list_from_equipment_table(self, table_el:WebElement, label: str) -> list[str]:
+        """<table class="equipment">内の<td>から’'・ステムキッチン'のようなテキストをリスト化して返す"""
+        
+        items: list[str] = []
+        
+        try:
+            tds = table_el.find_elements(By.XPATH, ".//td")
+        except Exception as e:
+            self.logger.error_log(f"[extract_list_from_equipment_table] {label}用td取得失敗: {e}")
+            return items
+        
+        for td in tds:
+            raw = td.text or ""
+            text = self.clean_text(raw)
+            
+            if not text or text == "-":
+                continue
+            
+            if text.startswith("・"):
+                text = text.lstrip("・").strip()
+                
+            if not text:
+                continue
+            
+            items.append(text)
+            
+        self.logger.info_log(f"[extract_list_from_equipment_table] {label} {len(items)}件取得: {items}")
+        return items
+# ------------------------------------------------------------------------------
+    # 関数定義   
+    def add_features_and_preferences(self,driver, data: dict) -> dict:
+        """詳細ページの「設備」「こだわり内容」テーブルからfeatures/preferencesを取得してdataに追加して返す"""
+        
+        features: list[str] = []
+        try:
+            equip_table = driver.find_element(
+                By.XPATH,
+                (
+                    "//td[@class='tbl_tit' and normalize-space()='設備']"
+                    "/following-sibling::td[1]"
+                    "//table[contains(@class,'equipment')]"
+                )
+            )
+            features = self.extract_list_from_equipment_table(equip_table, "features")
+            
+        except NoSuchElementException:
+            self.logger.error_log(f"[add_features_and_preferences] 設備テーブルが見つかりません")
+            
+        except Exception as e:
+            self.logger.error_log(f"[add_features_add_preferences] 設備取得中にエラー: {e}")
+            
+        
+        preferences: list[str] = []
+        try:
+            pref_table = driver.find_element(
+                By.XPATH,
+                (
+                    "//td[@class='tbl_tit' and normalize-space()='こだわり内容']"
+                    "/following-sibling::td[1]"
+                    "//table[contains(@class,'equipment')]"
+                )
+            )
+            preferences = self.extract_list_from_equipment_table(pref_table, "preferences")
+            
+        except NoSuchElementException:
+            self.logger.info_log(f"[add_features_and_preferences] こだわり内容テーブルが見つかりません（空として処理）")
+            
+        except Exception as e:
+            self.logger.error_log(f"[add_features_and_preferences] こだわり内容取得中にエラー: {e}")
+            
+        data["features"] = features
+        data["preferences"] = preferences
+            
+        self.logger.info_log(f"[add_features_and_preferences] 取得結果: "
+                            f"features={features}, preferences={preferences}")
+            
+        return data
+            
+# ------------------------------------------------------------------------------
+    # 関数定義  
+    def add_exterior_and_layout_images(self, driver, data: dict) -> dict:
+        """外観画像URL+間取り画像キャプチャを取得してdataに追加する"""
+        
+        exterior_url = ""
+        try:
+            exterior_img = driver.find_element(By.CSS_SELECTOR, "#detail_pic ul li img")
+            src = exterior_img.get_attribute("src") or ""
+            if src:
+                exterior_url = self.to_absolute_url(src,driver)
+            
+        except Exception as e:
+            self.logger.error_log(f"[add_exterior_and_layout_images] 外観画像取得に失敗（空文字として処理）: {e}")
+        
+        data["exterior_image"] = exterior_url
+        
+        data = self.capture_layout_image(driver,data)
+        
+        self.logger.info_log(
+            f"[add_exterior_and_layout_images] 取得結果: "
+            f"exterior_image={data['exterior_image']}, "
+            f"layout_image_path={data['layout_image_path']}"
+        )    
+        
+        return data                 
+# ------------------------------------------------------------------------------
+    # 関数定義  
+    def capture_layout_image(self,driver, data: dict) -> dict:
+        """間取キャンバス（<canvas id="cvsMdrImage">）をPNGで保存し、layout_image_pathとsaved_filesに反映する。失敗時は何も変更せずにそのまま返す。"""
+        
+        title = data.get("title", "layout")
+
+        try:
+            wait = WebDriverWait(driver, 10)
+            canvas = wait.until(EC.visibility_of_element_located((By.ID, "cvsMdrImage")))
+        except TimeoutException:
+            self.logger.info_log("[capture_layout_image] キャンバスが表示されずタイムアウト: layout_image_pathは空のまま")
+            return data
+        except Exception as e:
+            self.logger.error_log(f"[capture_layout_image] キャンバス待機中にエラー: {e}")
+            return data
+
+        try:
+            driver.execute_script("arguments[0].scrollIntoView(true);", canvas)
+        except Exception as e:
+            self.logger.info_log(f"[capture_layout_image] scrollIntoViewでエラー（無視して続行）: {e}")
+
+        base_dir = Path(__file__).resolve().parents[3]
+        layout_dir = base_dir / "data" / "pickle" / "layout"
+        layout_dir.mkdir(parents=True, exist_ok=True)
+
+        today = datetime.now().strftime("%Y%m%d")
+        safe_title = self.sanitize_title(title)
+        filename = f"{safe_title}_{today}.png"
+        abs_path = layout_dir / filename
+        rel_path = Path("installer") / "data" / "pickle" / "layout" / filename
+
+        try:
+            canvas.screenshot(str(abs_path))
+            self.logger.info_log(f"[capture_layout_image] 要素スクショで取得: abs={abs_path}, rel={rel_path}")
+        except Exception as e:
+            self.logger.info_log(f"[capture_layout_image] 要素スクショ失敗、toDataURLフォールバックを試行: {e}")
+            try:
+                data_url = driver.execute_script(
+                    """
+                    const canvas = document.getElementById('cvsMdrImage');
+                    if (!canvas) { return null; }
+                    try { return canvas.toDataURL('image/png'); }
+                    catch(e) { return 'ERROR:' + e.message; }
+                    """
+                )
+
+                if not data_url or not isinstance(data_url, str):
+                    self.logger.info_log("[capture_layout_image] toDataURLがnull / 不正な値を返却")
+                    return data
+
+                if data_url.startswith("ERROR:"):
+                    self.logger.info_log(f"[capture_layout_image] toDataURLでエラー: {data_url}")
+                    return data
+
+                if not data_url.startswith("data:image/png;base64,"):
+                    self.logger.info_log(f"[capture_layout_image] 想定外のdataURL形式: {data_url[:50]}...")
+                    return data
+
+                base64_data = data_url.split(",", 1)[1]
+                png_bytes = base64.b64decode(base64_data)
+
+                with open(abs_path,"wb") as f:
+                    f.write(png_bytes)
+
+                self.logger.info_log(f"[capture_layout_image] toDataURL フォールバックで取得: abs={abs_path}, rel={rel_path}")
+
+            except Exception as e2:
+                self.logger.error_log(f"[capture_layout_image] toDataURL フォールバックも失敗: {e2}")
+                return data
+
+        data["layout_image_path"] = str(rel_path)
+        saved = data.get("saved_files", [])
+        saved.append(str(rel_path))
+        data["saved_files"] = saved
+
+        return data
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def add_interior_images_and_comments(self, driver, data: dict) -> dict:
+        """スライダー（#detail_pic）から interior_1〜5 を埋め、あわせて comment_b〜d を生成して data に追加する。"""
+        try:
+            # スライダー内の全画像を取得（メインスライダー優先、無ければサムネイル側）
+            img_elements = driver.find_elements(By.CSS_SELECTOR, "#detail_pic ul li img")
+            if not img_elements:
+                img_elements = driver.find_elements(By.CSS_SELECTOR, "#pic_control ul li img")
+
+            urls: list[str] = []
+
+            for el in img_elements:
+                src = el.get_attribute("src")or""
+                if not src:
+                    continue
+                
+                abs_url = self.to_absolute_url(src,driver)
+                if abs_url not in urls:
+                    urls.append(abs_url)
+                    
+            # まず/room/を含むURLだけを「内観画像」とみなして抽出    
+            interior_urls = [u for u in urls if"/room/" in u]
+            
+            # /room/が一つもない物件では、外観画像URLを除外した残りを内観候補とするフォールバック
+            if not interior_urls:
+                exterior = data.get("exterior_image","")
+                interior_urls = [u for u in urls if u != exterior]
+            
+            # interior_1〜5を埋める    
+            for i in range(5):
+                key = f"interior_{i+1}"
+                data[key] = interior_urls[i] if i < len(interior_urls) else""
+
+            # ログ用まとめ
+            summary_items: list[str] = []
+            for i in range(5):
+                key = f"interior_{i+1}"
+                summary_items.append(f"{key}={data[key]}")
+                
+            self.logger.info_log(f"[add_interior_images_and_comments] 内観画像取得:"+",".join(summary_items) )
+            
+
+        # ---- 簡易コメント生成（ここは既存のまま）----
+            layout = data.get("layout", "")
+            area = data.get("area", "")
+            line = data.get("line", "")
+            station = data.get("station", "")
+            walk = data.get("walk", "")
+
+            data["comment_b"] = f"{layout}の間取りで、{area}の広さが魅力です。"
+            data["comment_c"] = f"{line}{station}から{walk}の立地で、通勤・通学にも便利です。"
+            data["comment_d"] = "収納や設備も充実しており、快適な暮らしが期待できます。"
+
+        except Exception as e:
+            self.logger.error_log(f"[add_interior_images_and_comments] 内観画像・コメント取得でエラー: {e}")
+
+        return data
+# ------------------------------------------------------------------------------
+    # 関数定義
+    def cleanup_saved_files(self, property_dict: dict) -> None:
+        """proprtty_dict［'save_files'］に登録された画像ファイルを削除する"""
+        
+        saved_files = property_dict.get("saved_files", [])
+        
+        if not saved_files:
+            self.logger.info_log(f"[cleanup_saved_files] 削除対象ファイルなし")
+            return
+        
+        for file_path in saved_files:
+            try:
+                p = Path(file_path)
+                if p.exists():
+                    p.unlink()
+                    self.logger.info_log(f"[cleanup_saved_files] 削除成功: {file_path}")
+                else :
+                    self.logger.info_log(f"[cleanup_saved_files] 存在しないためスキップ: {file_path}")
+            
+            except Exception as e:
+                self.logger.error_log(f"[cleanup_saved_files] 削除失敗: {file_path}, error={e}")           
+# ------------------------------------------------------------------------------
+    # 関数定義           
+    
+    
 #**********************************************************************************
