@@ -369,7 +369,7 @@ class Auto_Login_Flow:
     # 関数定義
     def create_property_dict(self,driver) -> Dict[str,str]:
         """一覧テーブルからタイトル（物件名_専有面積_階）ｰ>詳細URLの辞書を作成して返す"""
-        d: Dict[str,str] = {} # 変数dへからの辞書を代入する
+        d: Dict[str,str] = {} # 変数dへ空の辞書を代入する
         detail_links = self.find_elements(driver,By.XPATH,"//a[contains(@onclick,'window.open')][.//img[@alt='詳細']]") # 一覧ページにある全ての詳細のボタンがある周辺の要素を取り出して、変数dtail_linksへ代入する。
     
     
@@ -529,6 +529,7 @@ class Auto_Login_Flow:
     def make_empty_property_dict(self,title: str) -> dict:
         """1件の物件情報を入れるための「空の辞書テンプレ」を作って返す"""
         
+        # 変数dへ以下の情報を格納する辞書データの雛形を作成
         d = {
             "title": title,
             "line": "",
@@ -569,8 +570,9 @@ class Auto_Login_Flow:
     def add_line_station_walk(self,driver, data: dict) -> dict:
         """詳細ページの「交通/所在地」セルから、line（路線名）、station（駅名）、walk（徒歩情報）を取得して、引数dataの辞書に追加して返す"""
         
-        try:
-            cell = driver.find_element(
+        
+        try: # detail_pickupテーブルの中から『交通/所在地』という見出しセルを探し、その1つ下の行の1列目のセルの情報を取得
+            cell = driver.find_element( 
                 By.XPATH,
                 (
                     "//table[@id='detail_pickup']"
@@ -582,52 +584,54 @@ class Auto_Login_Flow:
                 )
             )
             
-        except NoSuchElementException:
+        except NoSuchElementException: # 指定した要素が見つからないときの処理 
             self.logger.error_log(f"[add_line_station_walk] 交通/所在地セルが見つかりません")
-            data["line"] = ""
-            data["station"] = ""
-            data["walk"] = ""
+            data["line"] = "" # 辞書データの"line"を空文字にする
+            data["station"] = "" # 辞書データの"station"を空文字にする
+            data["walk"] = "" # 辞書データの"walk"を空文字にする
             return data
         
-        except Exception as e:
+        except Exception as e: # それ以外の例外処理で、要素が見つからないときと同様に該当辞書データを空文字にする
             self.logger.error_log(f"[add_line_station_walk] 要素取得中にエラー:{e}")
             data["line"] = ""
             data["station"] = ""
             data["walk"] = ""
             return data
         
-        raw_text = cell.text.strip()
-        if not raw_text:
+        raw_text = cell.text.strip() # XPATHで取得した要素を格納した変数cellの先頭と末尾の空白を取り除いて、変数raw_textへ代入
+        if not raw_text: # 変数raw_textが空の場合の処理で、要素が見つからないときと同様に、該当辞書データを空文字にする
             self.logger.info_log("[add_line_station_walk] 交通/所在地セルが空のため、空文字で保存")
             data["line"] = ""
             data["station"] = ""
             data["walk"] = ""
             return data
             
-        first_line = raw_text.splitlines()[0]
-        first_line = self.clean_text(first_line)
+        first_line = raw_text.splitlines()[0] # XPATHで取得した要素をsptitlinesメソッドで改行しないで、1つの文字列にして、変数first_lineへ代入
+        first_line = self.clean_text(first_line) # 自作のclean_textメソッドを使用して、文字列の前後の空白と改行をなくして、もう一度変数first_lineへ代入
         
-        if "／" in first_line:
-            left,walk = first_line.split("／", 1)
-            walk = self.clean_text(walk)
-        else:
-            left = first_line
-            walk = ""
+        if "／" in first_line: # もし変数first_lineの中に全角のスラッシュが合った場合の処理
+            left,walk = first_line.split("／", 1) # splitメソッドで全角スラッシュを区切り文字として、１回だけ変数first_lineの文字列を分割取得して、前半を変数left、後半を変数walkへ代入
+            walk = self.clean_text(walk) # 全角スラッシュが含まれている文字列が格納された、変数walkの全角スラッシュを半角スラッシュに置き換えて、変数walkへ代入
+        else: # それ以外の処理
+            left = first_line # 変数first_lineを変数leftへ代入
+            walk = "" # 変数walkへから文字を代入
             
-        tokens = left.split()
-        if len(tokens) >= 2:
-            station = tokens[-1]
-            line_name = " ".join(tokens[:-1])
-        else:
-            line_name = left
-            station = ""
             
-        if station and not station.endswith("駅"):
-            station = station + "駅"
+        tokens = left.split() # 変数leftの文字列を、区切り文字無しの、分割回数0回でリストを取得し、変数tokensへ代入
+        
+        if len(tokens) >= 2: # 組み込み関数のlen（）で、変数tokensのリスト要素が2以上の場合の処理
+            station = tokens[-1] # 変数tokensのリスト最後尾のリスト以外を、変数stationへ代入
+            line_name = " ".join(tokens[:-1]) # 組み込み関数のjoinを用いて、変数tokensの最後尾のリスト以外のリスト全てを半角スペースと結合させて、変数line_nameへ代入
+        else: # それ以外の処理
+            line_name = left # 変数leftの値を、変数line_nameへ代入
+            station = "" # 変数stationへ空文字を代入
             
-        data["line"] = line_name
-        data["station"] = station
-        data["walk"] = walk
+        if station and not station.endswith("駅"): # もし変数stationの文字列の末尾が"駅"ではない場合の処理
+            station = station + "駅" # 変数文字列の末尾に"駅"を足して、変数stationへ代入
+            
+        data["line"] = line_name # 辞書データのlineへ、変数line_nameの値を代入
+        data["station"] = station # 辞書データのstationへ、変数stationの値を代入
+        data["walk"] = walk # 辞書データのwalkへ、変数walkの値を代入
         
         self.logger.info_log(f"[add_line_station_walk] 取得成功: line={line_name},station={station},walk={walk}")
         
@@ -637,27 +641,26 @@ class Auto_Login_Flow:
     def scrape_detail_pages_line_station_walk(self,driver,title_url_dict: Dict[str,str]) -> Dict[str,dict]:
         """タイトル　->　詳細URLの辞書を受け取り、各詳細ページを新しいタブで開いてline/station/walk/price/maintenance_fee/deposit/key_moneyを埋めたproperty_dictを返す"""
         
-        results: Dict[str,dict] = {}
-        original_handle = driver.current_window_handle
+        results: Dict[str,dict] = {} # 変数resultsへからの辞書を代入
+        original_handle = driver.current_window_handle # ｗebDriverメソッドにある、現在開いているタブの識別子（ID）を格納しているcurrent_window_handle変数、つまり詳細ページを開くまえの一覧ページのタブの識別子を変数original_hadleへ代入
         
-        for title, url in title_url_dict.items():
+        for title, url in title_url_dict.items(): # 辞書名title_url_dictから、ディクショナリメソッドであるitemsを用いて、キーと値をそれぞれ、変数titleとurlへ繰り返し代入処理
             self.logger.info_log(f"[scrape_detail_pages_line_station_walk] 詳細ページ処理開始: title={title},url={url}")
             
-            prop = self.make_empty_property_dict(title)
+            prop = self.make_empty_property_dict(title) # 自作メソッドである空の辞書を作成する、make_empty_property_dictメソッドへ、引数へ繰り返し処理で代入された変数titileの値を渡して、辞書を作成し、その結果を変数propへ代入
         
             try:
-                self.open_new_tab(driver,url)
+                self.open_new_tab(driver,url) # 自作メソッドであるopen_new_tabの引数へ、渡された引数driverとurlの値を渡して、Chromeブラウザで詳細URLを開く
                 self.wait_random()
             
-                self.switch_to_default(driver)
+                self.switch_to_default(driver) # 自作メソッドで新しいタブ内でのフレーム状態を初期化して、スクレイピングできるようにする
             
-                prop = self.add_line_station_walk(driver,prop)
-                prop = self.add_price_and_maintenance_fee(driver,prop)
-                prop = self.add_deposit_and_key_money(driver,prop)
-                prop = self.add_layout_and_area(driver,prop)
-                prop = self.add_features_and_preferences(driver,prop)
-                prop = self.add_exterior_and_layout_images(driver,prop)
-                prop = self.add_interior_images_and_comments(driver,prop)
+                prop = self.add_line_station_walk(driver,prop) # 自作メソッドであるadd_line_station_walkの引数へ、Chromeドライバーと繰り返し処理で代入された、変数titleが含まれた辞書データのpropを渡して、最寄り駅と徒歩時間を追加した辞書データを作成
+                prop = self.add_deposit_and_key_money(driver,prop) #自作メソッドで詳細ページから、辞書データへ敷金と礼金の情報を辞書データへ追加 
+                prop = self.add_layout_and_area(driver,prop) # 自作メソッドで詳細ページから、間取と専有面積の情報を辞書データへ追加
+                prop = self.add_features_and_preferences(driver,prop) # 自作メソッドで詳細ページから、設備とこだわり情報を辞書データへ追加
+                prop = self.add_exterior_and_layout_images(driver,prop) # 自作メソッドで詳細ページから、外観画像URL+間取り画像キャプチャを取得して辞書データへ追加
+                prop = self.add_interior_images_and_comments(driver,prop) # 自作メソッドで詳細ページから、スライダー（#detail_pic）から interior_1〜5 を埋め、あわせて comment_b〜d を生成して辞書データへ追加
             
                 self.logger.info_log(
                     f"[scrape_detail_pages_line_station_walk] 取得結果: "
@@ -671,20 +674,20 @@ class Auto_Login_Flow:
                     
                 )
 
-                results[title] = prop
+                results[title] = prop # 変数propに格納された辞書データを、辞書resultsのキーである、変数titleに格納する
         
             except Exception as e:
                 self.logger.error_log(f"[scrape_detail_pages_line_station_walk] "f"タイトル={title} の処理中にエラー: {e}")
             
-            finally:
+            finally: # 例外処理の有無にかかわらず、必ず以下を処理
             
                 try:
-                    driver.close()
+                    driver.close() # 詳細ページを開く際に立ち上がった新しいタブを閉じる
                 except Exception as e:
                     pass
             
                 try:
-                    driver.switch_to.window(original_handle)
+                    driver.switch_to.window(original_handle) # sleniumが操作対象とするブラウザの識別子を、一覧ページの識別子に渡して、そこを操作対象とする
             
                 except Exception:
                     pass
@@ -696,73 +699,79 @@ class Auto_Login_Flow:
     def extract_int_from_text(self,text: str) -> int:
         """文字列から数字だけ抜き出してintに変換（無ければ0）"""
         
-        if text is None:
-            return 0
+        if text is None: # 引数textで受け取った値が、何も無い場合の処理
+            return 0 # 変数textへ0を返す
         
-        digits = re.sub(r"[^\d]","",text)
+        digits = re.sub(r"[^\d]","",text) # 正規表現の文字列を指定した文字列へ置換する、subメソッドを呼び出して、変数text内の文字列を、第一引数で指定した[^\d]、つまり数字以外の文字列を、第二引数で指定した空文字へ、置換して変数digitsへ代入
         
-        if digits:
-            val = int(digits)
+        if digits: # 変数digitsが真の場合
+            val = int(digits) # 変数digitsの値を整数に置換し、変数valへ代入
             self.logger.info_log(f"[extract_int_from_text] 数値抽出成功: text={repr(text)}, val={val}")
             return val
         
         else:
             self.logger.info_log(f"[extract_int_from_text] 数値が見つからず0として扱います: text={repr(text)}")
-            return 0          
+            return 0        
 # ------------------------------------------------------------------------------
     # 関数定義    
     def add_price_and_maintenance_fee(self,driver,data: dict) -> dict:
         """詳細ページの「賃料/管理費等」セルから、price（賃料）とmaintenance（管理費）を取得してdataに追加して返す"""
-        try:
+        
+        try: # XPATHで該当のhtml要素を検索して、値の結果を変数cellへ代入
             cell = driver.find_element(
                 By.XPATH,
                 (
                     "//table[@id='detail_pickup']"
                     "//span[@id='detail_price']/parent::td"
-                 )
+                )
             ) 
-        except Exception as e:
+        except Exception as e: # 要素が見つからなかった場合、辞書データのpriceとmaintenanceへ、0を代入して返す
             self.logger.error_log(f"[add_price_and_maintenance_fee] 賃料セルが見つかりません: {e}")
             data["price"] = 0
             data["maintenance_fee"] = 0
             return data
             
-        raw_text = cell.text.strip()
-        if not raw_text:
+        raw_text = cell.text.strip() # XPATHで取得した値である文字列から、WebElementプロパティであるtextを用いて、有効な文字列だけを取得し、前後の空白を取り除いて、変数raw_textへ代入
+        
+        if not raw_text: # 変数raw_textが真でない場合、辞書データのpriceとmaintenanceへ、0を代入して返す
             self.logger.info_log(f"[add_price_and_maintenance_fee] 賃料セルが空のため0で保存します")
             data["price"] = 0
             data["maintenance_fee"] = 0
             return data
         
-        lines = raw_text.splitlines()
-        price_line = lines[0] if len(lines) >= 1 else ""
-        maint_line = lines[1] if len(lines) >= 2 else ""
+        lines = raw_text.splitlines() # 変数raw_text内の行で分割した、各行の文字列をリストで取得して、変数linesへ代入　例187,000円　　　　　
+        　　　　　　　　　　　　　　　　　　#　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　管理費　5,0000円という2行の文字列を、lines　=["187,000円"、"管理費　5,000円"]とリスト化する
         
-        price_val = self.extract_int_from_text(price_line)
-        maint_val = self.extract_int_from_text(maint_line)
+        price_line = lines[0] if len(lines) >= 1 else "" # 変数lines内のリストが1以上の場合、変数linesの1つ目を変数price_lineへ、それ以外の場合、空文字を変数price_lineへ代入する
+        maint_line = lines[1] if len(lines) >= 2 else "" # 変数lines内のリストが2以上の場合、変数linesの2つ目を変数maint_lineへ、それ以外の場合、空文字を変数maint_lineへ代入する
         
-        data["price"] = price_val
-        data["maintenance_fee"] = maint_val
+        price_val = self.extract_int_from_text(price_line) # 自作メソッドのextract_int_from_textで、引数で渡された文字列から数字を整数にして、変数price_valへ代入
+        maint_val = self.extract_int_from_text(maint_line) # 自作メソッドのextract_int_from_textで、引数で渡された文字列から数字を整数にして、変数price_valへ代入
+        
+        data["price"] = price_val # 変数price_valの値を辞書データのpriceへ代入
+        data["maintenance_fee"] = maint_val # 変数maint_valの値を辞書データのmaintenance_feeへ代入
         
         self.logger.info_log(f"[add_price_and_maintenance_fee] 取得成功: price={price_val}, maintenance_fee={maint_val}")
         return data
-         
+        
 # ------------------------------------------------------------------------------
     # 関数定義 
     def extract_float_months(self,text: str) -> float:
         """1ヶ月、1.5ヶ月、‐、なし、などの文字列からfloat値（月数）を抽出して返す。見つからなければ0.0とする。"""
         
-        t = text.strip()
-        if not t or t in("-","ー"):
+        t = text.strip() # 引数textから渡された値である文字列の前後の空白を取り除いて、変数tへ代入
+        
+        if not t or t in("-","ー"): # 変数tが空文字または、変数tが、「‐」、「ー」である場合、0.0を返す
             self.logger.info_log(f"[extract_float_months] '-'判定のため0.0扱い: text={repr(text)}")
             return 0.0
         
-        m = re.search(r"(\d+(?:\.\d+)?)", t)
-        if not m:
+        m = re.search(r"(\d+(?:\.\d+)?)", t) # 正規表現のsearchメソッドを呼び出して、変数tに格納されている文字列から、第一引数で指定した整数、または小数を変数mへ代入
+        
+        if not m: # 変数mがfalseの場合、0.0を返す
             self.logger.info_log(f"[extract_float_months] 数値が見つからず0.0扱い: text={repr(text)}")
             return 0.0
         
-        val = float(m.group(1))
+        val = float(m.group(1)) # マッチオブジェクトである、groupメソッドで、変数ｍの第一引数で指定した、整数または小数を取り出して、浮動小数点に変換して、変数valへ代入
         self.logger.info_log(f"[extract_float_months] 数値抽出成功: text={repr(text)}, val={val}")
         return val
 # ------------------------------------------------------------------------------
@@ -770,7 +779,7 @@ class Auto_Login_Flow:
     def add_deposit_and_key_money(self,driver,data: dict) -> dict:
         """詳細ページの「敷金（保証金）/礼金」セルから、deposit（敷金）とkey_money（礼金）を取得してdataに追加して返す"""
         
-        try:
+        try: # XPATHで該当のhtml要素を検索して、値の結果を変数cellへ代入
             cell = driver.find_element(
                 By.XPATH,
                 (
@@ -782,28 +791,29 @@ class Auto_Login_Flow:
                 )
             )
         
-        except Exception as e:
+        except Exception as e: # 例外処理の場合、辞書データのdepositとkey_moneyに0.0を代入
             self.logger.error_log(f"[add_deposit_and_key_money] 敷金/礼金セルが見つかりません: {e}")
             data["deposit"] = 0.0
             data["key_money"] = 0.0
             return data
         
-        raw_text = cell.text.strip()
-        if not raw_text:
+        raw_text = cell.text.strip() # XPATHで取得した値である文字列から、WebElementプロパティであるtextを用いて、有効な文字列だけを取得し、前後の空白を取り除いて、変数raw_textへ代入
+        
+        if not raw_text: # 変数raw_textが空文字の場合、辞書データのdepositとkey_moneyに0.0を代入
             self.logger.info_log(f"[add_deposit_and_key_money] 敷金/礼金セルが空のため0.0で保存します")
             data["deposit"] = 0.0
             data["key_money"] = 0.0
             return data
         
-        lines = raw_text.splitlines()
-        deposit_line = self.clean_text(lines[0]) if len(lines) >= 1 else ""
-        key_line = self.clean_text(lines[1]) if len(lines) >= 2 else ""
+        lines = raw_text.splitlines() # 変数raw_text内の行で分割した、各行の文字列をリストで取得して、変数linesへ代入
+        deposit_line = self.clean_text(lines[0]) if len(lines) >= 1 else "" # 変数linesに格納されているリストの個数が1以上の場合、自作メソッドであるclean_textで、変数linesの1番目の値の余分な空白を埋めて、変数deposit_lineへ代入、それ以外の場合、空文字を代入
+        key_line = self.clean_text(lines[1]) if len(lines) >= 2 else "" # 変数linesに格納されているリストの個数が2以上の場合、自作メソッドであるclean_textで、変数linesの2番目の値の余分な空白を埋めて、変数deposit_lineへ代入、それ以外の場合、空文字を代入
         
-        deposit_val = self.extract_float_months(deposit_line)
-        key_val = self.extract_float_months(key_line)
+        deposit_val = self.extract_float_months(deposit_line) # 自作メソッドであるextract_float_monthsで、変数deposit_lineに格納された値を浮動小数点に変換して、変数deposit_valへ代入
+        key_val = self.extract_float_months(key_line) # 自作メソッドであるextract_float_monthsで、変数key_lineに格納された値を浮動小数点の整数に変換して、変数key_valへ代入
         
-        data["deposit"] = deposit_val
-        data["key_money"] = key_val
+        data["deposit"] = deposit_val # 辞書データdepositへ、変数deposit_valの値を代入
+        data["key_money"] = key_val # 辞書データkey_moneyへ、変数key_valの値を代入
         
         self.logger.info_log(f"[add_deposit_and_key_money] 取得成功: deposit={deposit_val},key_money={key_val}")
         return data          
@@ -811,7 +821,8 @@ class Auto_Login_Flow:
     # 関数定義
     def add_layout_and_area(self,driver, data: dict) -> dict:
         """詳細ページの「間取/専有面積」セルからlayout（間取り）とarea（専有面積）を取得してdataに追加して返す"""
-        try:
+        
+        try: # XPATHで該当のhtml要素を検索して、値の結果を変数cellへ代入
             cell = driver.find_element(
                 By.XPATH,
                 (
@@ -823,25 +834,26 @@ class Auto_Login_Flow:
                 )
             )
         
-        except Exception as e:
+        except Exception as e: # 例外処理の場合、辞書データのlayoutとareaに0.0を代入
             self.logger.error_log(f"[add_layout_and_area] 間取/専有面積セルが見つかりません: {e}")
             data["layout"] = ""
             data["area"] = ""
             return data
             
-        raw_text = cell.text.strip()
-        if not raw_text:
+        raw_text = cell.text.strip() # XPATHで取得した値である文字列から、WebElementプロパティであるtextを用いて、有効な文字列だけを取得し、前後の空白を取り除いて、変数raw_textへ代入
+        
+        if not raw_text: # 変数raw_textが空文字の場合、辞書データのlayoutとareaに0.0を代入
             self.logger.info_log(f"[add_layout_and_area] 間取/専有面積セルが空のため空文字で保存します")
             data["layout"] = ""
             data["area"] = ""
             return data
             
-        lines = raw_text.splitlines()
-        layout_line = self.clean_text(lines[0]) if len(lines) >= 1 else ""
-        area_line   = self.clean_text(lines[1]) if len(lines) >= 2 else ""
+        lines = raw_text.splitlines() # 変数raw_text内の行で分割した、各行の文字列をリストで取得して、変数linesへ代入
+        layout_line = self.clean_text(lines[0]) if len(lines) >= 1 else "" # 変数linesに格納されているリストの個数が1以上の場合、自作メソッドであるclean_textで、変数linesの1番目の値の余分な空白を埋めて、変数layout_lineへ代入、それ以外の場合、空文字を代入
+        area_line   = self.clean_text(lines[1]) if len(lines) >= 2 else "" # 変数linesに格納されているリストの個数が2以上の場合、自作メソッドであるclean_textで、変数linesの2番目の値の余分な空白を埋めて、変数area_lineへ代入、それ以外の場合、空文字を代入
         
-        data["layout"] = layout_line
-        data["area"]   = area_line
+        data["layout"] = layout_line # 辞書データlayoutへ、変数layout_lineの値を代入
+        data["area"]   = area_line # 辞書データareaへ、変数area_lineの値を代入
         
         self.logger.info_log(f"[add_layout_and_area] 取得成功: layout={layout_line}, area={area_line}")
         return data       
@@ -850,28 +862,29 @@ class Auto_Login_Flow:
     def extract_list_from_equipment_table(self, table_el:WebElement, label: str) -> list[str]:
         """<table class="equipment">内の<td>から’'・ステムキッチン'のようなテキストをリスト化して返す"""
         
-        items: list[str] = []
+        items: list[str] = [] # 文字列型のリストを格納する変数itemsへ、空のリストを代入
         
-        try:
+        try: # 第一引数で渡されたWebElementのfind_elementsメソッドを呼び出して、渡された値の中の複数のtdタグを探して、変数tdsへ代入
             tds = table_el.find_elements(By.XPATH, ".//td")
-        except Exception as e:
+            
+        except Exception as e: # 例外処理
             self.logger.error_log(f"[extract_list_from_equipment_table] {label}用td取得失敗: {e}")
             return items
         
-        for td in tds:
-            raw = td.text or ""
-            text = self.clean_text(raw)
+        for td in tds: # 変数tdsに格納された複数のtdタグを、変数tdへ繰り返し代入して処理
+            raw = td.text or "" # WebElementプロパティであるtextを使用して、XPATHで取得したtdタグの文字列を変数rawへ代入、または、何も無い場合は空文字を代入
+            text = self.clean_text(raw) # 自作メソッドclean_textを呼び出して、変数rawの文字列の余分な余白を埋めて、変数textへ代入
             
-            if not text or text == "-":
+            if not text or text == "-": # 変数textが空文字である場合、または変数textが半角ハイフンと一致した場合、処理を続行
                 continue
             
-            if text.startswith("・"):
-                text = text.lstrip("・").strip()
+            if text.startswith("・"): # 先頭文字列が引数で指定した文字列と一致した場合にTrueを返すstartswithメソッドを呼び出して、変数textの先頭が「・」であった場合の処理
+                text = text.lstrip("・").strip() # 引数で指定した、先頭の文字列を除去するlstripメソッドを呼び出して、変数textの「・」を取り除き、stiripメソッドで前後の空白を取り除き、変数textへ代入
                 
-            if not text:
+            if not text: # 変数textが空文字である場合、処理を続行
                 continue
             
-            items.append(text)
+            items.append(text) # リストへ要素を追加するappendメソッドを呼び出して、変数textに格納されているtdから取得した文字列を、文字列型のリストを格納するitemsへ代入
             
         self.logger.info_log(f"[extract_list_from_equipment_table] {label} {len(items)}件取得: {items}")
         return items
@@ -880,8 +893,9 @@ class Auto_Login_Flow:
     def add_features_and_preferences(self,driver, data: dict) -> dict:
         """詳細ページの「設備」「こだわり内容」テーブルからfeatures/preferencesを取得してdataに追加して返す"""
         
-        features: list[str] = []
-        try:
+        features: list[str] = [] # 文字列型のリストを格納する変数featuresへ、空のリストを代入
+        
+        try: # XPATHで該当のhtml要素を検索して、値の結果を変数equip_tableへ代入
             equip_table = driver.find_element(
                 By.XPATH,
                 (
@@ -890,17 +904,19 @@ class Auto_Login_Flow:
                     "//table[contains(@class,'equipment')]"
                 )
             )
-            features = self.extract_list_from_equipment_table(equip_table, "features")
             
-        except NoSuchElementException:
+            features = self.extract_list_from_equipment_table(equip_table, "features") # 自作メソッドであるtdタグの情報を整理するメソッドを呼び出して、第一引数でXPATHで取得した文字列を渡して整理し、その結果を変数featuresへ代入
+            
+        except NoSuchElementException: # tdタグ要素が見つからない場合の処理
             self.logger.error_log(f"[add_features_and_preferences] 設備テーブルが見つかりません")
             
-        except Exception as e:
+        except Exception as e: # 例外処理
             self.logger.error_log(f"[add_features_add_preferences] 設備取得中にエラー: {e}")
             
         
-        preferences: list[str] = []
-        try:
+        preferences: list[str] = [] # 文字列型のリストを格納する変数preferencesへ、空のリストを代入
+        
+        try: # XPATHで該当のhtml要素を検索して、値の結果を変数equip_tableへ代入
             pref_table = driver.find_element(
                 By.XPATH,
                 (
@@ -909,19 +925,19 @@ class Auto_Login_Flow:
                     "//table[contains(@class,'equipment')]"
                 )
             )
-            preferences = self.extract_list_from_equipment_table(pref_table, "preferences")
             
-        except NoSuchElementException:
+            preferences = self.extract_list_from_equipment_table(pref_table, "preferences") # 自作メソッドであるtdタグの情報を整理するメソッドを呼び出して、第一引数でXPATHで取得した文字列を渡して整理し、その結果を変数preferencesへ代入
+            
+        except NoSuchElementException: # tdタグ要素が見つからない場合の処理
             self.logger.info_log(f"[add_features_and_preferences] こだわり内容テーブルが見つかりません（空として処理）")
             
-        except Exception as e:
+        except Exception as e: # 例外処理
             self.logger.error_log(f"[add_features_and_preferences] こだわり内容取得中にエラー: {e}")
             
-        data["features"] = features
-        data["preferences"] = preferences
+        data["features"] = features # 変数featuresに格納されたリストを、辞書データのfeaturesへ代入
+        data["preferences"] = preferences # 変数preferencesに格納されたリストを、辞書データのpreferencesへ代入
             
-        self.logger.info_log(f"[add_features_and_preferences] 取得結果: "
-                            f"features={features}, preferences={preferences}")
+        self.logger.info_log(f"[add_features_and_preferences] 取得結果: "f"features={features}, preferences={preferences}")
             
         return data
             
@@ -930,19 +946,21 @@ class Auto_Login_Flow:
     def add_exterior_and_layout_images(self, driver, data: dict) -> dict:
         """外観画像URL+間取り画像キャプチャを取得してdataに追加する"""
         
-        exterior_url = ""
+        exterior_url = "" # 変数exterior_urlへ空文字を代入
+        
         try:
-            exterior_img = driver.find_element(By.CSS_SELECTOR, "#detail_pic ul li img")
-            src = exterior_img.get_attribute("src") or ""
-            if src:
-                exterior_url = self.to_absolute_url(src,driver)
+            exterior_img = driver.find_element(By.CSS_SELECTOR, "#detail_pic ul li img") # detail_picというIDを持つ、要素内にある＜ul＞＜li＞＜img＞と一致するWebElement要素を取得して、変数exterior_imgへ代入
+            src = exterior_img.get_attribute("src") or "" # WebElementオプションのgeet_attributeを使用して引数で指定した「src」を、変数exterior_imgに格納されている要素から、指定したオブジェクトから該当する要素である相対URLを、変数srcへ代入、または何も無い場合は、空文字を代入する
             
-        except Exception as e:
+            if src: # 変数srcがTrueの場合の処理
+                exterior_url = self.to_absolute_url(src,driver) # 自作メソッドである相対URLを絶対URLへ変換するto_absolute_urlを使用して、変数exterior_urlへ代入
+            
+        except Exception as e: # 例外処理
             self.logger.error_log(f"[add_exterior_and_layout_images] 外観画像取得に失敗（空文字として処理）: {e}")
         
-        data["exterior_image"] = exterior_url
+        data["exterior_image"] = exterior_url #　格納されたURLを辞書データへ渡す
         
-        data = self.capture_layout_image(driver,data)
+        data = self.capture_layout_image(driver,data) # 自作メソッドである間取画像をPNG保存するメソッドを呼び出して、取得したURLを渡して、画像を保存して返す
         
         self.logger.info_log(
             f"[add_exterior_and_layout_images] 取得結果: "
@@ -956,40 +974,45 @@ class Auto_Login_Flow:
     def capture_layout_image(self,driver, data: dict) -> dict:
         """間取キャンバス（<canvas id="cvsMdrImage">）をPNGで保存し、layout_image_pathとsaved_filesに反映する。失敗時は何も変更せずにそのまま返す。"""
         
-        title = data.get("title", "layout")
+        title = data.get("title", "layout") # getメソッドを呼び出して、辞書データ内から引数で指定した、titleキーを取得して、なかった場合はlayoutキーを変数titleに代入
 
         try:
-            wait = WebDriverWait(driver, 10)
-            canvas = wait.until(EC.visibility_of_element_located((By.ID, "cvsMdrImage")))
-        except TimeoutException:
+            wait = WebDriverWait(driver, 10) # 最大10秒間待機
+            canvas = wait.until(EC.visibility_of_element_located((By.ID, "cvsMdrImage"))) # cvsMdrImageというID属性要素がページ内に見つかり、かつ画面上に表示するまで、最大10秒待機して、その要素を変数canvasへ代入
+            
+        except TimeoutException: # 10秒以上経過して、要素が表示されなかった場合の処理
             self.logger.info_log("[capture_layout_image] キャンバスが表示されずタイムアウト: layout_image_pathは空のまま")
             return data
-        except Exception as e:
+        
+        except Exception as e: # 例外処理
             self.logger.error_log(f"[capture_layout_image] キャンバス待機中にエラー: {e}")
             return data
 
         try:
-            driver.execute_script("arguments[0].scrollIntoView(true);", canvas)
-        except Exception as e:
+            driver.execute_script("arguments[0].scrollIntoView(true);", canvas) # WebDriverメソッドのexecute_scriptを呼び出して、第二引数で渡された要素を、第一引数で指定した、第二引数の要素をJavaScriptコードであるscrollIntoViewで、画面上部に移動させる
+            
+        except Exception as e: # 例外処理
             self.logger.info_log(f"[capture_layout_image] scrollIntoViewでエラー（無視して続行）: {e}")
 
-        base_dir = Path(__file__).resolve().parents[3]
-        layout_dir = base_dir / "data" / "pickle" / "layout"
-        layout_dir.mkdir(parents=True, exist_ok=True)
+        base_dir = Path(__file__).resolve().parents[3] # pathlib.Pathオブジェクトのparentsで、現在のファイルディレクトリから4つ上へ、resolveメソッドで絶対パスへ変換したファイルパスを変数base_dirへ代入
+        layout_dir = base_dir / "data" / "pickle" / "layout" # 変数base_dirにファイルパスへ、左記のパスを追加して、変数layout_dirへ代入
+        layout_dir.mkdir(parents=True, exist_ok=True) # OSモジュールのmkdirメソッドを呼び出して、変数parentsとexist_okへTrueを代入したディレクトリを作成
 
-        today = datetime.now().strftime("%Y%m%d")
-        safe_title = self.sanitize_title(title)
-        filename = f"{safe_title}_{today}.png"
-        abs_path = layout_dir / filename
-        rel_path = Path("installer") / "data" / "pickle" / "layout" / filename
+        today = datetime.now().strftime("%Y%m%d") # 現在の日時を取得し、strftimeメソッドで年月日形式に変換し、変数todayに代入
+        safe_title = self.sanitize_title(title) # 自作メソッドで、引数で渡された変数title内の、ファイル名に使用できない文字列を、使用可能に変換し、変数safe_titleへ代入
+        filename = f"{safe_title}_{today}.png" # 変数safe_titleとtodayの文字列を.pngで結合して、変数falenameへ代入
+        abs_path = layout_dir / filename # 変数layout_dirの文字列へfilenameを/を加えて追加し、変数abs_pathへ代入し絶対パスを作成し代入
+        rel_path = Path("installer") / "data" / "pickle" / "layout" / filename # 相対パスを作成して代入
 
         try:
-            canvas.screenshot(str(abs_path))
+            canvas.screenshot(str(abs_path)) # webDriverモジュールのscreenshotメソッドを呼び出して、strメソッドで渡された変数abs_pathを文字列に変換し、その引数で渡された要素を探してスクリーンショットをする
             self.logger.info_log(f"[capture_layout_image] 要素スクショで取得: abs={abs_path}, rel={rel_path}")
-        except Exception as e:
+            
+        except Exception as e: # 例外処理
             self.logger.info_log(f"[capture_layout_image] 要素スクショ失敗、toDataURLフォールバックを試行: {e}")
+            
             try:
-                data_url = driver.execute_script(
+                data_url = driver.execute_script( # 画像データのJavaScriptを取得
                     """
                     const canvas = document.getElementById('cvsMdrImage');
                     if (!canvas) { return null; }
@@ -998,34 +1021,34 @@ class Auto_Login_Flow:
                     """
                 )
 
-                if not data_url or not isinstance(data_url, str):
+                if not data_url or not isinstance(data_url, str): # 変数data_urlが何も無い場合、または指定したオブジェクトが指定したクラスのインスタンスである時にTrueを返す、isinstanceメソッドを呼び出して、変数data_urlが文字列では無かった場合の処理
                     self.logger.info_log("[capture_layout_image] toDataURLがnull / 不正な値を返却")
                     return data
 
-                if data_url.startswith("ERROR:"):
+                if data_url.startswith("ERROR:"): # 引数で指定した文字列が、先頭に含まれていた場合Trueを返すメソッドstartswithメソッドを呼び出し、変数deta_urlの先頭が、「ERROR」だった場合の処理
                     self.logger.info_log(f"[capture_layout_image] toDataURLでエラー: {data_url}")
                     return data
 
-                if not data_url.startswith("data:image/png;base64,"):
+                if not data_url.startswith("data:image/png;base64,"): # 変数deta_urlの先頭文字が、data・・・と一致しなかった場合の処理
                     self.logger.info_log(f"[capture_layout_image] 想定外のdataURL形式: {data_url[:50]}...")
                     return data
 
-                base64_data = data_url.split(",", 1)[1]
-                png_bytes = base64.b64decode(base64_data)
+                base64_data = data_url.split(",", 1)[1] # 変数data_urlの文字列を、分割して取得するsplitメソッドを呼び出して、第一引数で指定した「,」で区切り、1回で分割した値を、リストの1番目から、変数base64_dataへ代入
+                png_bytes = base64.b64decode(base64_data) # 文字列やバイナリデータを、ASCII文字に変換された文字列を、もとのバイナリデータに戻すb64decodeメソッド呼び出して、引数で渡されたbase64_dataのASCII文字の値を、変数png_bytesへ代入
 
-                with open(abs_path,"wb") as f:
-                    f.write(png_bytes)
+                with open(abs_path,"wb") as f: # ファイルを開くopenメソッドを呼び出して、変数abs_pathに格納されているファイルパスを、書き込み用バイナリモードデータで開き、最後にファイルを閉じる
+                    f.write(png_bytes) # 変数abs_pathに格納されているファイルパスへ、引数png_bytesで渡されたバイナリデータを、書き込む
 
                 self.logger.info_log(f"[capture_layout_image] toDataURL フォールバックで取得: abs={abs_path}, rel={rel_path}")
 
-            except Exception as e2:
+            except Exception as e2: # 例外処理
                 self.logger.error_log(f"[capture_layout_image] toDataURL フォールバックも失敗: {e2}")
                 return data
 
-        data["layout_image_path"] = str(rel_path)
-        saved = data.get("saved_files", [])
-        saved.append(str(rel_path))
-        data["saved_files"] = saved
+        data["layout_image_path"] = str(rel_path) # 相対パスが格納されている変数rel_pathを文字列に置換し、辞書データへ代入
+        saved = data.get("saved_files", []) # saved_filesというキーの値を取り出して、変数savedへ代入、存在しない場合は空のリストを返す
+        saved.append(str(rel_path)) # 間取り画像の相対パスを文字列にして、変数savedのリストへ追加
+        data["saved_files"] = saved # 変数savedのリストを辞書データへ追加
 
         return data
 # ------------------------------------------------------------------------------
@@ -1034,53 +1057,54 @@ class Auto_Login_Flow:
         """スライダー（#detail_pic）から interior_1〜5 を埋め、あわせて comment_b〜d を生成して data に追加する。"""
         try:
             # スライダー内の全画像を取得（メインスライダー優先、無ければサムネイル側）
-            img_elements = driver.find_elements(By.CSS_SELECTOR, "#detail_pic ul li img")
-            if not img_elements:
-                img_elements = driver.find_elements(By.CSS_SELECTOR, "#pic_control ul li img")
+            img_elements = driver.find_elements(By.CSS_SELECTOR, "#detail_pic ul li img") # detail_picというIDを持つ、要素内にある＜ul＞＜li＞＜img＞と一致するWebElement要素を取得して、変数img_elementへ代入
+            
+            if not img_elements: # 変数img_elementsが何も無い場合
+                img_elements = driver.find_elements(By.CSS_SELECTOR, "#pic_control ul li img") # detail_picというIDを持つ、要素内にある＜ul＞＜li＞＜img＞と一致するWebElement要素を取得して、変数exterior_imgへ代入
 
-            urls: list[str] = []
+            urls: list[str] = [] # 変数urlsへ空のリストを代入
 
-            for el in img_elements:
-                src = el.get_attribute("src")or""
-                if not src:
+            for el in img_elements: # 変数img_elementsに格納されている要素を繰り返し、変数elへ代入して処理を繰り返す
+                src = el.get_attribute("src")or"" # src属性の値を取得して、変数srcへ代入、または空文字を代入
+                if not src: # srcが何も無い場合の処理
                     continue
                 
-                abs_url = self.to_absolute_url(src,driver)
-                if abs_url not in urls:
-                    urls.append(abs_url)
+                abs_url = self.to_absolute_url(src,driver) # srcから取得した値を自作メソッドのto__absolute_urlで、絶対パスへ変換して、変数abs_urlへ代入
+                if abs_url not in urls: # 変数abs_urlに格納されている絶対パスが、変数urlsであるリストの中にない場合の処理
+                    urls.append(abs_url) # 変数urlsのリストへ、abs_urlの値を追加
                     
             # まず/room/を含むURLだけを「内観画像」とみなして抽出    
-            interior_urls = [u for u in urls if"/room/" in u]
+            interior_urls = [u for u in urls if"/room/" in u] # リスト内包表記を用いて、変数uの中に「/room/」がある場合、変数urlsの中にあるリスト内の要素を、変数uに取り出して、変数uを新しいリストとして、変数interior_urlsへ代入
             
             # /room/が一つもない物件では、外観画像URLを除外した残りを内観候補とするフォールバック
-            if not interior_urls:
-                exterior = data.get("exterior_image","")
-                interior_urls = [u for u in urls if u != exterior]
+            if not interior_urls: # 変数interior_urlsが何も無い場合の処理
+                exterior = data.get("exterior_image","") # 辞書データであるdataから、キーであるexterior_imageの値を取得して、変数exeriorへ代入
+                interior_urls = [u for u in urls if u != exterior] # リスト内包表記を用いて、変数uとexteriorが一致しない場合、変数urlsの中にあるリスト内の要素を、変数uに取り出して、変数uを新しいリストとして、変数interior_urlsへ代入
             
             # interior_1〜5を埋める    
-            for i in range(5):
-                key = f"interior_{i+1}"
-                data[key] = interior_urls[i] if i < len(interior_urls) else""
+            for i in range(5): # 変数iに0〜4を代入しながら処理を繰り返す
+                key = f"interior_{i+1}" # interior_1〜5という文字列を、変数keyへ代入
+                data[key] = interior_urls[i] if i < len(interior_urls) else"" # 変数interior_urlsの現在の数が、変数interior_urlsのリスト数以下の場合、辞書データのキーでkeyへ代入、それ以外は空文字を代入する
 
             # ログ用まとめ
-            summary_items: list[str] = []
-            for i in range(5):
-                key = f"interior_{i+1}"
-                summary_items.append(f"{key}={data[key]}")
+            summary_items: list[str] = [] # 変数summary_itemsへ、空のリストを代入
+            for i in range(5): # 変数iに0〜4を代入しながら処理を繰り返す
+                key = f"interior_{i+1}" # interior_1〜5という文字列を、変数keyへ代入
+                summary_items.append(f"{key}={data[key]}") # 変数summar_itemsのリストへ、辞書データdataのキーであるkeyを、keyとして追加
                 
             self.logger.info_log(f"[add_interior_images_and_comments] 内観画像取得:"+",".join(summary_items) )
             
 
         # ---- 簡易コメント生成（ここは既存のまま）----
-            layout = data.get("layout", "")
-            area = data.get("area", "")
-            line = data.get("line", "")
-            station = data.get("station", "")
-            walk = data.get("walk", "")
+            layout = data.get("layout", "") # 辞書データのキー、layoutの値を取得して、変数layoutに代入
+            area = data.get("area", "") # 辞書データのキー、areaの値を取得して、変数areaに代入
+            line = data.get("line", "") # 辞書データのキー、lineの値を取得して、変数lineに代入
+            station = data.get("station", "") # 辞書データのキー、stationの値を取得して、変数stationに代入
+            walk = data.get("walk", "") # 辞書データのキー、walkの値を取得して、変数walkに代入
 
-            data["comment_b"] = f"{layout}の間取りで、{area}の広さが魅力です。"
-            data["comment_c"] = f"{line}{station}から{walk}の立地で、通勤・通学にも便利です。"
-            data["comment_d"] = "収納や設備も充実しており、快適な暮らしが期待できます。"
+            data["comment_b"] = f"{layout}の間取りで、{area}の広さが魅力です。" # 取得した辞書データで合体した文字列を辞書データのcomment_bへ代入
+            data["comment_c"] = f"{line}{station}から{walk}の立地で、通勤・通学にも便利です。" # 取得した辞書データで合体した文字列を辞書データのcomment_cへ代入
+            data["comment_d"] = "収納や設備も充実しており、快適な暮らしが期待できます。" # 取得した辞書データで合体した文字列を辞書データのcomment_dへ代入
 
         except Exception as e:
             self.logger.error_log(f"[add_interior_images_and_comments] 内観画像・コメント取得でエラー: {e}")
