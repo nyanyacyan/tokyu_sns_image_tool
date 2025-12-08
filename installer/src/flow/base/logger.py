@@ -18,7 +18,7 @@ class Logger:
         # ログの出力設定（ファイル名、ログレベル、フォーマットなど）
         logging.basicConfig(
             filename=file_path,                                # ログの出力ファイル
-            level=logging.INFO,                                # INFOレベル以上をすべて記録
+            level=logging.DEBUG,                                # INFOレベル以上をすべて記録
             format='%(asctime)s - %(levelname)s - %(message)s' # 日時・レベル・内容
         )
 
@@ -50,3 +50,21 @@ class Logger:
     def critical_log(self, message):
         logging.critical(self.message_and_time(message))       # ファイル出力
         print(self.message_and_time(message), file=sys.stderr) # エラー用ターミナル出力
+
+    # ChatGPTが生成した紹介文のログを出力
+    def log_generated_comment(self, label: str, text: str, min_len: int, max_len: int) -> bool:
+        """ ChatGPT が生成した紹介文について、'文字数''指定範囲内かどうか''本文そのもの'をログに出しつつ、範囲内なら True ,そうでなければ False を返す"""
+        length = len(text) # 引数で渡されたtextの要素の個数を、変数lengthへ代入
+        
+        # 文字数と判定結果をログに残す
+        in_range = (min_len <= length <= max_len) # 連鎖比較にて、min_lenが、length以下かつ、lengthがmax_len以下である場合、変数in_rangeへTrueを返す
+        self.info_log(
+            f"[log_generated_comment] ラベル={label}, 文字数={length}, " 
+            f"許容範囲=({min_len}〜{max_len}), 範囲内か={in_range}"
+            
+            )
+        
+        # 実際の本文もログに残す
+        self.info_log(f"[log_generated_comment] 生成された紹介文: {text}")
+        
+        return in_range
