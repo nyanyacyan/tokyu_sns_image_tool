@@ -18,7 +18,7 @@ def dummy_llm(prompt: str) -> str:
     )
 
 
-async def generate_recommend_comment(
+def generate_recommend_comment(
     logger: Logger,
     llm_func,
     label: str,
@@ -48,7 +48,7 @@ async def generate_recommend_comment(
     logger.info_log(f"[{label}] 送信プロンプト:\n{prompt}")
 
     # ④ 実際に LLM（ここでは llm_func = OpenAI 呼び出し）を呼ぶ
-    text = await call_openai_chat(
+    text =  call_openai_chat(
         prompt,
         max_tokens=512,
         temperature=0.7,
@@ -70,7 +70,7 @@ async def generate_recommend_comment(
     return text
 
 
-async def main() -> None:
+def main() -> None:
     """Issue #17 動作確認用の簡易テストエントリポイント"""
 
     logger = Logger()
@@ -79,16 +79,15 @@ async def main() -> None:
     features = ["南向きの明るいリビング", "収納豊富", "駅近", "オートロック付き"]
 
     # OpenAI API を叩く関数を llm_func として渡す
-    async def llm_func(prompt: str) -> str:
+    def llm_func(prompt: str) -> str:
         # max_tokens や temperature はテスト用に控えめに設定
-        return await call_openai_chat(
-            logger=logger,
+        return  call_openai_chat(
             prompt=prompt,
             max_tokens=512,
             temperature=0.7,
         )
 
-    comment = await generate_recommend_comment(
+    comment =  generate_recommend_comment(
         logger=logger,
         llm_func=llm_func,
         label="recommend_test",
@@ -102,4 +101,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
