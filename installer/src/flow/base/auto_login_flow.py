@@ -739,8 +739,7 @@ class Auto_Login_Flow:
             data["maintenance_fee"] = 0
             return data
         
-        lines = raw_text.splitlines() # 変数raw_text内の行で分割した、各行の文字列をリストで取得して、変数linesへ代入　例187,000円　　　　　
-        　　　　　　　　　　　　　　　　　　#　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　管理費　5,0000円という2行の文字列を、lines　=["187,000円"、"管理費　5,000円"]とリスト化する
+        lines = raw_text.splitlines() # 変数raw_text内の行で分割した、各行の文字列をリストで取得して、変数linesへ代入　例187,000円 管理費　5,0000円という2行の文字列を、lines　=["187,000円"、"管理費　5,000円"]とリスト化する
         
         price_line = lines[0] if len(lines) >= 1 else "" # 変数lines内のリストが1以上の場合、変数linesの1つ目を変数price_lineへ、それ以外の場合、空文字を変数price_lineへ代入する
         maint_line = lines[1] if len(lines) >= 2 else "" # 変数lines内のリストが2以上の場合、変数linesの2つ目を変数maint_lineへ、それ以外の場合、空文字を変数maint_lineへ代入する
@@ -1090,7 +1089,7 @@ class Auto_Login_Flow:
             summary_items: list[str] = [] # 変数summary_itemsへ、空のリストを代入
             for i in range(5): # 変数iに0〜4を代入しながら処理を繰り返す
                 key = f"interior_{i+1}" # interior_1〜5という文字列を、変数keyへ代入
-                summary_items.append(f"{key}={data[key]}") # 変数summar_itemsのリストへ、辞書データdataのキーであるkeyを、keyとして追加
+                summary_items.append(f"{key}={data[key]}") # 変数summar_itemsのリストへ、キーと値の文字列ペアを追加
                 
             self.logger.info_log(f"[add_interior_images_and_comments] 内観画像取得:"+",".join(summary_items) )
             
@@ -1115,17 +1114,19 @@ class Auto_Login_Flow:
     def cleanup_saved_files(self, property_dict: dict) -> None:
         """proprtty_dict［'save_files'］に登録された画像ファイルを削除する"""
         
-        saved_files = property_dict.get("saved_files", [])
+        saved_files = property_dict.get("saved_files", []) # 辞書データのキーであるsaved_filesの値を取得して、存在しない場合は空リストを、変数saved_filesへ代入
         
-        if not saved_files:
+        if not saved_files: # 変数saved_filesになにもない場合の処理
             self.logger.info_log(f"[cleanup_saved_files] 削除対象ファイルなし")
             return
         
-        for file_path in saved_files:
+        for file_path in saved_files: # 変数saved_filesに格納されている値を繰り返し、変数file_pathへ代入
+            
             try:
-                p = Path(file_path)
-                if p.exists():
-                    p.unlink()
+                p = Path(file_path) # 変数file_pathの文字列をPathコンストラクタで、オブジェクト化して削除を簡単に実行できるようにする
+                if p.exists(): # 変数pにパスが存在する場合の処理
+                    p.unlink() # パスを削除
+                    
                     self.logger.info_log(f"[cleanup_saved_files] 削除成功: {file_path}")
                 else :
                     self.logger.info_log(f"[cleanup_saved_files] 存在しないためスキップ: {file_path}")
